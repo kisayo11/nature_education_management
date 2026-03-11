@@ -694,13 +694,30 @@
       }
 
       try {
-        const response = await fetch(`${ScriptURL}?action=getTrainings`);
-        const data = await response.json();
+        // 1. 브라우저 캐시(SessionStorage) 먼저 확인 (새로고침 속도 0초)
+        const cachedTrainings = sessionStorage.getItem('cached_training_list');
+        let trainingsData = null;
 
-        if (data.success && data.trainings && data.trainings.length > 0) {
+        if (cachedTrainings) {
+          trainingsData = JSON.parse(cachedTrainings);
+        } else {
+          // 캐시가 없으면 구글 스크립트로 Fetch 요청
+          const response = await fetch(`${ScriptURL}?action=getTrainings`);
+          const data = await response.json();
+          
+          if (data.success && data.trainings) {
+            trainingsData = data.trainings;
+            // 데이터를 가져왔으면 브라우저에 임시 저장 (탭을 닫기 전까지 유지)
+            sessionStorage.setItem('cached_training_list', JSON.stringify(trainingsData));
+          } else {
+             throw new Error("데이터를 찾을 수 없거나 형식 오류");
+          }
+        }
+
+        if (trainingsData && trainingsData.length > 0) {
           listContainer.innerHTML = ''; // 스피너 제거
 
-          data.trainings.forEach(training => {
+          trainingsData.forEach(training => {
             const card = document.createElement('button');
             card.className = 'training-card';
             card.onclick = () => goToSignature(training.id, training.name);
