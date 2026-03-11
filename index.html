@@ -10,7 +10,7 @@
   <link rel="stylesheet" as="style" crossorigin
     href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
-  <title>소방훈련교육명부</title>
+  <title>네이처요양병원 재직자교육 2026</title>
   <style>
     :root {
       --primary: #2B5A50;
@@ -198,18 +198,42 @@
       color: var(--text-sub);
     }
 
-    /* 화면 중앙 로딩 스피너 */
-    .center-spinner {
+    /* 화면 중앙 로딩 스피너 및 텍스트 래퍼 */
+    .loading-container {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+
+    .center-spinner {
       width: 40px;
       height: 40px;
       border: 4px solid var(--secondary);
       border-radius: 50%;
       border-top-color: var(--primary);
       animation: spin 1s ease-in-out infinite;
+    }
+
+    .loading-message {
+      text-align: center;
+      color: var(--text-sub);
+      font-size: 0.95rem;
+      line-height: 1.5;
+      margin: 0;
+      animation: pulse 1.5s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.7; }
+      50% { opacity: 1; }
+      100% { opacity: 0.7; }
     }
 
     /* --- 뷰 2: 서명 페이지 (이전 index.html) --- */
@@ -499,7 +523,7 @@
       </div>
 
       <div class="title-section">
-        <h1>네이처요양병원<br>재직자교육</h1>
+        <h1>네이처요양병원<br>자체 재직자교육</h1>
         <p>참석하실 교육 과정을 선택해주세요.</p>
       </div>
 
@@ -507,7 +531,10 @@
 
       <div class="training-list" id="training-list-container">
         <!-- 로딩 스피너 (초기 상태) -->
-        <div class="center-spinner" id="list-spinner"></div>
+        <div class="loading-container" id="list-spinner">
+          <div class="center-spinner"></div>
+          <p class="loading-message">잠시만 기다려 주세요...<br>목록을 불러오고 있습니다.</p>
+        </div>
         <!-- 교육 목록이 자바스크립트에 의해 동적으로 렌더링 됩니다. -->
       </div>
     </div>
