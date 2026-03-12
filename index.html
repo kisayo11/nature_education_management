@@ -713,26 +713,13 @@
       employeeData.forEach(emp => {
         const option = document.createElement('option');
         option.value = emp.name;
-        // 부서를 라벨로 보여주어 동명이인 구분에 도움을 줄 수 있음
-        option.textContent = emp.dept; 
         datalist.appendChild(option);
       });
     }
 
-    // 이름 입력 시 부서 자동 선택
+    // 이름 입력 시 처리 (자동 선택 로직 제거됨 - 데이터 부정확성 방지)
     document.getElementById('name').addEventListener('input', (e) => {
-      const selectedName = e.target.value.trim();
-      const match = employeeData.find(emp => emp.name === selectedName);
-      if (match) {
-        const deptSelect = document.getElementById('department');
-        // 부서명이 일치하는 option 찾아서 선택
-        for (let i = 0; i < deptSelect.options.length; i++) {
-          if (deptSelect.options[i].value === match.dept) {
-            deptSelect.selectedIndex = i;
-            break;
-          }
-        }
-      }
+      // 이제 이름을 선택하거나 입력해도 부서는 자동으로 바뀌지 않습니다.
     });
 
     async function loadTrainings() {
