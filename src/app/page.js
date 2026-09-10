@@ -295,7 +295,7 @@ function SignatureContent() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('서명부 GDoc이 생성/갱신되었습니다!');
+        showToast('서명부가 성공적으로 생성되었습니다!');
         setGeneratedDoc(data);
         loadTrainings(); // 시트 URL 업데이트 반영
       } else {
@@ -495,7 +495,7 @@ function SignatureContent() {
                           borderRadius: 6,
                         }}
                       >
-                        <FileText size={13} /> 서명부 GDoc 열람
+                        <FileText size={13} /> 서명부 열람
                       </a>
                     ) : (
                       <button

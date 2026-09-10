@@ -37,7 +37,7 @@ export async function POST(request) {
 
     return NextResponse.json({
       success: true,
-      message: '교육참석 서명부 GDoc이 성공적으로 생성되었습니다.',
+      message: '교육참석 서명부 문서가 성공적으로 생성되었습니다.',
       docUrl: docRes.docUrl,
       pdfUrl: docRes.pdfUrl,
       attendanceCount: signatures.length,

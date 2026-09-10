@@ -112,7 +112,7 @@ export default function ReportPage() {
             <CheckCircle2 size={22} /> 교육결과보고서 생성 완료!
           </div>
           <p style={{ fontSize: 13, color: '#166534', marginTop: 6, marginBottom: 14 }}>
-            구글 문서가 생성되었으며 [보고서_목록] 시트에 안전하게 기록되었습니다.
+            교육결과보고서가 생성되었으며 [보고서_목록] 시트에 안전하게 기록되었습니다.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a
@@ -122,7 +122,7 @@ export default function ReportPage() {
               className="btn-primary"
               style={{ fontSize: 13, padding: '10px 16px' }}
             >
-              <ExternalLink size={15} /> 생성된 구글 문서 바로보기
+              <ExternalLink size={15} /> 생성된 결과보고서 열람
             </a>
             <a
               href={result.pdfUrl}
@@ -393,10 +393,10 @@ export default function ReportPage() {
           {loading ? (
             <>
               <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-              구글 문서 생성 및 드라이브 저장 중...
+              보고서 생성 및 드라이브 저장 중...
             </>
           ) : (
-            '교육결과보고서 생성하기 (GDoc 자동발행)'
+            '교육결과보고서 생성하기'
           )}
         </button>
       </form>

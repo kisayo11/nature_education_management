@@ -101,7 +101,7 @@ export default function ArchivePage() {
       });
       const data = await res.json();
       if (data.success) {
-        alert('교육참석 서명부 GDoc이 성공적으로 생성되었습니다!');
+        alert('교육참석 서명부 문서가 성공적으로 생성되었습니다!');
         loadData();
       } else {
         alert(data.error || '생성 실패');
@@ -309,12 +309,12 @@ export default function ArchivePage() {
               {docGenerating ? (
                 <>
                   <RefreshCw size={14} style={{ animation: 'spin 1s linear infinite' }} />
-                  서명부 GDoc 생성 중...
+                  서명부 문서 생성 중...
                 </>
               ) : (
                 <>
                   <FileText size={15} />
-                  {selectedTraining.signatureDocUrl ? '서명부 GDoc 최신화' : '서명부 GDoc 생성'}
+                  {selectedTraining.signatureDocUrl ? '서명부 문서 최신화' : '서명부 문서 생성'}
                 </>
               )}
             </button>
@@ -337,7 +337,7 @@ export default function ArchivePage() {
                   color: '#166534',
                 }}
               >
-                <ExternalLink size={15} /> 생성된 GDoc 바로보기
+                <ExternalLink size={15} /> 생성된 서명부 문서 열람
               </a>
             )}
           </div>
@@ -398,7 +398,7 @@ export default function ArchivePage() {
                               borderRadius: 6,
                             }}
                           >
-                            <ExternalLink size={13} /> GDoc 열람
+                            <ExternalLink size={13} /> 문서 열람
                           </a>
                         )}
                       </td>
@@ -448,7 +448,7 @@ export default function ArchivePage() {
                               borderRadius: 6,
                             }}
                           >
-                            <ExternalLink size={13} /> GDoc 열람
+                            <ExternalLink size={13} /> 문서 열람
                           </a>
                         )}
                       </td>

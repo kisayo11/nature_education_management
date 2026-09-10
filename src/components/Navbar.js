@@ -27,30 +27,25 @@ export default function Navbar() {
         maxWidth: 1080,
         margin: '0 auto',
         padding: '0 16px',
-        height: 60,
+        height: 64,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
       }}>
-        {/* 로고 */}
-        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <div style={{
-            width: 32,
-            height: 32,
-            borderRadius: 8,
-            backgroundColor: 'var(--primary)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#fff',
-            fontWeight: 800,
-            fontSize: 16
-          }}>
-            N
-          </div>
-          <div>
-            <div style={{ fontWeight: 800, fontSize: 16, color: 'var(--primary)', letterSpacing: -0.5 }}>네이처요양병원</div>
-            <div style={{ fontSize: 10, color: 'var(--text-sub)', marginTop: -2 }}>교육관리시스템 2026</div>
+        {/* 네이처요양병원 공식 로고 */}
+        <Link href="/" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <img
+            src="/logo.png"
+            alt="네이처요양병원"
+            style={{
+              height: 40,
+              width: 'auto',
+              objectFit: 'contain',
+              display: 'block',
+            }}
+          />
+          <div style={{ borderLeft: '1.5px solid var(--input-border)', paddingLeft: 10, display: 'flex', flexDirection: 'column' }}>
+            <span style={{ fontSize: 13, fontWeight: 800, color: 'var(--primary)', letterSpacing: -0.3 }}>교육관리시스템</span>
           </div>
         </Link>
 

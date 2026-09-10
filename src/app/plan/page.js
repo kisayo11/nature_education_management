@@ -85,7 +85,7 @@ export default function PlanPage() {
             <CheckCircle2 size={22} /> 교육실시계획서 생성 완료!
           </div>
           <p style={{ fontSize: 13, color: '#166534', marginTop: 6, marginBottom: 14 }}>
-            구글 문서가 생성되었으며 [계획서_목록] 시트에 안전하게 기록되었습니다.
+            교육실시계획서가 생성되었으며 [계획서_목록] 시트에 안전하게 기록되었습니다.
           </p>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             <a
@@ -95,7 +95,7 @@ export default function PlanPage() {
               className="btn-primary"
               style={{ fontSize: 13, padding: '10px 16px' }}
             >
-              <ExternalLink size={15} /> 생성된 구글 문서 바로보기
+              <ExternalLink size={15} /> 생성된 계획서 열람
             </a>
             <a
               href={result.pdfUrl}
@@ -315,7 +315,7 @@ export default function PlanPage() {
           {loading ? (
             <>
               <RefreshCw size={18} style={{ animation: 'spin 1s linear infinite' }} />
-              구글 문서 생성 및 스프레드시트 기록 중...
+              계획서 생성 및 스프레드시트 기록 중...
             </>
           ) : (
             '교육실시계획서 생성'
