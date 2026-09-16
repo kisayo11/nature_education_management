@@ -135,7 +135,7 @@ export default function ArchivePage() {
           교육 문서 및 서명부 통합 조회
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 4 }}>
-          작성자, 부서명, 교육명 등 특정 헤더값으로 계획서, 보고서, 참석 서명 기록을 검색하고 문서를 열람할 수 있습니다.
+          교육실시계획서, 교육결과보고서, 교육참석 서명부 문서를 검색하고 열람 및 관리할 수 있습니다.
         </p>
       </div>
 
@@ -466,7 +466,6 @@ export default function ArchivePage() {
                     <th style={{ padding: '14px 16px' }}>부서</th>
                     <th style={{ padding: '14px 16px' }}>직종</th>
                     <th style={{ padding: '14px 16px' }}>성명</th>
-                    <th style={{ padding: '14px 16px' }}>서명일시</th>
                     <th style={{ padding: '14px 16px', textAlign: 'center' }}>자필 서명</th>
                   </tr>
                 </thead>
@@ -477,7 +476,6 @@ export default function ArchivePage() {
                       <td style={{ padding: '14px 16px', fontWeight: 600 }}>{sig.department}</td>
                       <td style={{ padding: '14px 16px' }}>{sig.job || '-'}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 700 }}>{sig.name}</td>
-                      <td style={{ padding: '14px 16px', color: 'var(--text-sub)', fontSize: 13 }}>{sig.signedAt}</td>
                       <td style={{ padding: '10px 16px', textAlign: 'center' }}>
                         {sig.imageUrl ? (
                           <button

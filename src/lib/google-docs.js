@@ -72,6 +72,30 @@ export async function createDocumentFromTemplate({
     }
   }
 
+  // 5. 병원 공식 로고 삽입 (계획서 및 보고서 상단)
+  try {
+    const logoUri = 'https://drive.google.com/thumbnail?id=1ucXzGQcDpM_dBHf3vyj9H4bvs5AI57wd&sz=w600';
+    await docs.documents.batchUpdate({
+      documentId: newDocId,
+      requestBody: {
+        requests: [
+          {
+            insertInlineImage: {
+              uri: logoUri,
+              location: { index: 1 },
+              objectSize: {
+                width: { magnitude: 110, unit: 'PT' },
+                height: { magnitude: 32, unit: 'PT' },
+              },
+            },
+          },
+        ],
+      },
+    });
+  } catch (logoErr) {
+    console.warn('병원 로고 삽입 중 알림 (계속 진행):', logoErr.message);
+  }
+
   return {
     docId: newDocId,
     docTitle: newTitle,
@@ -110,12 +134,8 @@ export async function createSignatureAttendanceDoc({
   const docId = fileRes.data.id;
   const docUrl = fileRes.data.webViewLink;
 
-  // 2. 헤더 텍스트 삽입
-  const headerText = `${trainingName} 참석 서명부\n\n` +
-    `• 교육일시: ${datetime || '일시 미지정'}\n` +
-    `• 교육대상: ${target || '전 직원'}\n` +
-    `• 총 참석자: ${signatures.length}명\n` +
-    `• 출력일시: ${new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' })}\n\n`;
+  // 2. 헤더 텍스트 삽입 (상세 bullet 헤더 제거, 깔끔한 서식 제목 적용)
+  const headerText = `${trainingName} 참석 서명부\n\n`;
 
   await docs.documents.batchUpdate({
     documentId: docId,
@@ -131,10 +151,38 @@ export async function createSignatureAttendanceDoc({
     },
   });
 
+  // 서명부 상단 병원 공식 로고 삽입
+  try {
+    const logoUri = 'https://drive.google.com/thumbnail?id=1ucXzGQcDpM_dBHf3vyj9H4bvs5AI57wd&sz=w600';
+    await docs.documents.batchUpdate({
+      documentId: docId,
+      requestBody: {
+        requests: [
+          {
+            insertInlineImage: {
+              uri: logoUri,
+              location: { index: 1 },
+              objectSize: {
+                width: { magnitude: 110, unit: 'PT' },
+                height: { magnitude: 32, unit: 'PT' },
+              },
+            },
+            insertText: {
+              location: { index: 2 },
+              text: '\n',
+            },
+          },
+        ],
+      },
+    });
+  } catch (logoErr) {
+    console.warn('서명부 로고 삽입 알림 (계속 진행):', logoErr.message);
+  }
+
   // 3. 표(Table) 삽입
   // 행 수 = 헤더 1행 + 서명자 수(최소 1행)
   const rowCount = Math.max(signatures.length + 1, 2);
-  const colCount = 6;
+  const colCount = 5; // 서명일시 열 제거 (연번, 소속 부서, 직종, 성명, 자필 서명)
 
   // 현재 문서 끝 위치 조회
   const curDoc = await docs.documents.get({ documentId: docId });
@@ -173,8 +221,8 @@ export async function createSignatureAttendanceDoc({
     const tableRows = tableElement.tableRows || [];
     const cellUpdates = [];
 
-    // 0행: 헤더
-    const headers = ['연번', '소속 부서', '직종', '성명', '서명 일시', '서명 확인'];
+    // 0행: 헤더 (서명일시 제거)
+    const headers = ['연번', '소속 부서', '직종', '성명', '자필 서명'];
     if (tableRows[0]) {
       tableRows[0].tableCells.forEach((cell, cIdx) => {
         const startIdx = cell.content[0]?.startIndex || cell.startIndex;
@@ -194,7 +242,6 @@ export async function createSignatureAttendanceDoc({
           sig.department || '',
           sig.job || '',
           sig.name || '',
-          sig.signedAt || '',
           sig.imageUrl ? `서명완료 (링크)` : '서명완료',
         ];
 

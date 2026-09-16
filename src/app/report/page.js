@@ -90,7 +90,7 @@ export default function ReportPage() {
       {/* 상단 타이틀 */}
       <div style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 700, fontSize: 13 }}>
-          <FileText size={16} /> 교육양식
+          <FileText size={16} /> 교육 양식
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginTop: 4, letterSpacing: -0.5 }}>
           교육결과보고서작성
@@ -109,7 +109,7 @@ export default function ReportPage() {
           borderWidth: 1.5,
         }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, color: 'var(--success)', fontWeight: 800, fontSize: 16 }}>
-            <CheckCircle2 size={22} /> 교육결과보고서 생성 완료!
+            <CheckCircle2 size={22} /> 교육 결과 보고서 생성 완료!
           </div>
           <p style={{ fontSize: 13, color: '#166534', marginTop: 6, marginBottom: 14 }}>
             교육결과보고서가 생성되었으며 [보고서_목록] 시트에 안전하게 기록되었습니다.
@@ -266,14 +266,29 @@ export default function ReportPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>교육 구분</label>
-            <select name="category" value={formData.category} onChange={handleChange}>
-              <option value="법정의무교육">법정의무교육</option>
-              <option value="원내자체교육">직무필수교육</option>
-              <option value="직무역량교육">직무역량교육</option>
-              <option value="인증필수교육">인증필수교육</option>
-              <option value="외부위탁교육">외부위탁교육</option>
-            </select>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+              교육 구분 <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input
+              type="text"
+              name="category"
+              list="category-options"
+              value={formData.category}
+              onChange={handleChange}
+              placeholder="교육 구분을 직접 입력하거나 선택하세요"
+              required
+            />
+            <datalist id="category-options">
+              <option value="법정의무교육" />
+              <option value="직무필수교육" />
+              <option value="직무역량교육" />
+              <option value="인증필수교육" />
+              <option value="감염관리교육" />
+              <option value="소방안전교육" />
+              <option value="개인정보보호교육" />
+              <option value="환자안전교육" />
+              <option value="외부위탁교육" />
+            </datalist>
           </div>
 
           <div>

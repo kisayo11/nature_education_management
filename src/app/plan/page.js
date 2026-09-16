@@ -239,14 +239,29 @@ export default function PlanPage() {
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>교육 구분</label>
-            <select name="category" value={formData.category} onChange={handleChange}>
-              <option value="법정의무교육">법정의무교육</option>
-              <option value="원내자체교육">직무필수교육</option>
-              <option value="직무역량교육">직무역량교육</option>
-              <option value="인증필수교육">인증필수교육</option>
-              <option value="외부위탁교육">외부위탁교육</option>
-            </select>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 4 }}>
+              교육 구분 <span style={{ color: 'var(--error)' }}>*</span>
+            </label>
+            <input
+              type="text"
+              name="category"
+              list="category-options"
+              value={formData.category}
+              onChange={handleChange}
+              placeholder="교육 구분을 직접 입력하거나 선택하세요"
+              required
+            />
+            <datalist id="category-options">
+              <option value="법정의무교육" />
+              <option value="직무필수교육" />
+              <option value="직무역량교육" />
+              <option value="인증필수교육" />
+              <option value="감염관리교육" />
+              <option value="소방안전교육" />
+              <option value="개인정보보호교육" />
+              <option value="환자안전교육" />
+              <option value="외부위탁교육" />
+            </datalist>
           </div>
 
           <div>
