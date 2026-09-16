@@ -182,7 +182,7 @@ export async function createSignatureAttendanceDoc({
   // 3. 표(Table) 삽입
   // 행 수 = 헤더 1행 + 서명자 수(최소 1행)
   const rowCount = Math.max(signatures.length + 1, 2);
-  const colCount = 5; // 서명일시 열 제거 (연번, 소속 부서, 직종, 성명, 자필 서명)
+  const colCount = 4; // 연번, 소속 부서, 성명, 자필 서명 (직종 제거)
 
   // 현재 문서 끝 위치 조회
   const curDoc = await docs.documents.get({ documentId: docId });
@@ -221,12 +221,13 @@ export async function createSignatureAttendanceDoc({
     const tableRows = tableElement.tableRows || [];
     const cellUpdates = [];
 
-    // 0행: 헤더 (서명일시 제거)
-    const headers = ['연번', '소속 부서', '직종', '성명', '자필 서명'];
+    // 0행: 헤더 (연번, 소속 부서, 성명, 자필 서명)
+    const headers = ['연번', '소속 부서', '성명', '자필 서명'];
     if (tableRows[0]) {
       tableRows[0].tableCells.forEach((cell, cIdx) => {
         const startIdx = cell.content[0]?.startIndex || cell.startIndex;
         cellUpdates.push({
+          type: 'text',
           index: startIdx,
           text: headers[cIdx] || '',
         });
@@ -237,39 +238,128 @@ export async function createSignatureAttendanceDoc({
     signatures.forEach((sig, rIdx) => {
       const row = tableRows[rIdx + 1];
       if (row) {
-        const rowValues = [
+        const rowTextValues = [
           String(rIdx + 1),
           sig.department || '',
-          sig.job || '',
           sig.name || '',
-          sig.imageUrl ? `서명완료 (링크)` : '서명완료',
         ];
 
-        row.tableCells.forEach((cell, cIdx) => {
-          const startIdx = cell.content[0]?.startIndex || cell.startIndex;
-          cellUpdates.push({
-            index: startIdx,
-            text: rowValues[cIdx] || '',
-          });
-        });
+        // 0~2열: 연번, 소속 부서, 성명
+        for (let cIdx = 0; cIdx < 3; cIdx++) {
+          const cell = row.tableCells[cIdx];
+          if (cell) {
+            const startIdx = cell.content[0]?.startIndex || cell.startIndex;
+            cellUpdates.push({
+              type: 'text',
+              index: startIdx,
+              text: rowTextValues[cIdx] || '',
+            });
+          }
+        }
+
+        // 3열: 자필 서명 (실제 서명 그림 파일 삽입)
+        const signCell = row.tableCells[3];
+        if (signCell) {
+          const startIdx = signCell.content[0]?.startIndex || signCell.startIndex;
+          let fileId = null;
+          if (sig.imageUrl) {
+            const match = sig.imageUrl.match(/\/file\/d\/([a-zA-Z0-9_-]+)/) || sig.imageUrl.match(/id=([a-zA-Z0-9_-]+)/);
+            if (match) fileId = match[1];
+          }
+
+          if (fileId) {
+            const imgUri = `https://drive.google.com/thumbnail?id=${fileId}&sz=w400`;
+            cellUpdates.push({
+              type: 'image',
+              index: startIdx,
+              uri: imgUri,
+            });
+          } else {
+            cellUpdates.push({
+              type: 'text',
+              index: startIdx,
+              text: '서명 완료',
+            });
+          }
+        }
       }
     });
 
     // 인덱스 큰 순서대로 정렬하여 역순 삽입 (인덱스 보존)
     cellUpdates.sort((a, b) => b.index - a.index);
 
-    const cellRequests = cellUpdates.map((u) => ({
-      insertText: {
-        location: { index: u.index },
-        text: u.text,
-      },
-    }));
+    const cellRequests = cellUpdates.map((u) => {
+      if (u.type === 'image') {
+        return {
+          insertInlineImage: {
+            uri: u.uri,
+            location: { index: u.index },
+            objectSize: {
+              width: { magnitude: 75, unit: 'PT' },
+              height: { magnitude: 28, unit: 'PT' },
+            },
+          },
+        };
+      }
+      return {
+        insertText: {
+          location: { index: u.index },
+          text: u.text,
+        },
+      };
+    });
 
     if (cellRequests.length > 0) {
+      try {
+        await docs.documents.batchUpdate({
+          documentId: docId,
+          requestBody: { requests: cellRequests },
+        });
+      } catch (imgErr) {
+        console.warn('서명 이미지 삽입 실패 시 텍스트 폴백:', imgErr.message);
+        const fallbackRequests = cellUpdates.map((u) => ({
+          insertText: {
+            location: { index: u.index },
+            text: u.type === 'image' ? '서명 완료' : u.text,
+          },
+        }));
+        await docs.documents.batchUpdate({
+          documentId: docId,
+          requestBody: { requests: fallbackRequests },
+        });
+      }
+    }
+
+    // 헤더 행 배경색 스타일 적용
+    try {
       await docs.documents.batchUpdate({
         documentId: docId,
-        requestBody: { requests: cellRequests },
+        requestBody: {
+          requests: [
+            {
+              updateTableCellStyle: {
+                tableRange: {
+                  tableCellLocation: {
+                    tableStartLocation: { index: tableElement.startIndex },
+                    rowIndex: 0,
+                    columnIndex: 0,
+                  },
+                  rowSpan: 1,
+                  columnSpan: colCount,
+                },
+                tableCellStyle: {
+                  backgroundColor: {
+                    color: { rgbColor: { red: 0.94, green: 0.94, blue: 0.94 } },
+                  },
+                },
+                fields: 'backgroundColor',
+              },
+            },
+          ],
+        },
       });
+    } catch (tblStyleErr) {
+      console.warn('서명부 표 스타일 적용 안내:', tblStyleErr.message);
     }
   }
 
