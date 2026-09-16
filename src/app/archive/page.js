@@ -11,7 +11,12 @@ import {
   Download,
   RefreshCw,
   Eye,
-  QrCode as QrIcon
+  QrCode as QrIcon,
+  Users,
+  Copy,
+  Check,
+  X,
+  TrendingUp
 } from 'lucide-react';
 
 export default function ArchivePage() {
@@ -25,8 +30,16 @@ export default function ArchivePage() {
   const [selectedTrainingId, setSelectedTrainingId] = useState('');
   const [selectedTraining, setSelectedTraining] = useState(null);
 
+  // 재직자 목록 & 미이수자 통계 상태
+  const [employees, setEmployees] = useState([]);
+  const [showNonAttendeesModal, setShowNonAttendeesModal] = useState(false);
+  const [copiedNotice, setCopiedNotice] = useState(false);
+
   // 서명부 GDoc 생성 로딩 상태
   const [docGenerating, setDocGenerating] = useState(false);
+
+  // 통합 PDF 병합 로딩 상태
+  const [mergingPdf, setMergingPdf] = useState(null);
 
   // 서명 이미지 확대 모달
   const [previewImage, setPreviewImage] = useState(null);
@@ -83,6 +96,67 @@ export default function ArchivePage() {
     setSelectedTraining(matched || null);
   }, [selectedTrainingId, trainings]);
 
+  // 서명부 탭일 때 재직자 명단 조회하여 이수율 계산
+  useEffect(() => {
+    if (activeTab === 'signatures' && selectedTraining) {
+      const fetchEmployees = async () => {
+        try {
+          const res = await fetch(`/api/employees?date=${encodeURIComponent(selectedTraining.datetime || '')}&dept=${encodeURIComponent(selectedTraining.target || '전체')}`);
+          const data = await res.json();
+          if (data.success && data.employees) {
+            setEmployees(data.employees);
+          }
+        } catch (e) {
+          console.error('재직자 목록 로드 오류:', e);
+        }
+      };
+      fetchEmployees();
+    } else {
+      setEmployees([]);
+    }
+  }, [activeTab, selectedTraining]);
+
+  // 미이수자 계산 (대상자 중 아직 서명하지 않은 직원)
+  const nonAttendees = employees.filter((emp) => {
+    return !items.some(
+      (sig) => sig.name.trim() === emp.name.trim() && (!emp.department || sig.department.trim() === emp.department.trim())
+    );
+  });
+
+  const totalTargetCount = employees.length > 0 ? employees.length : items.length;
+  const attendanceRate = totalTargetCount > 0 ? Math.min(Math.round((items.length / totalTargetCount) * 100), 100) : 0;
+
+  // 부서별 이수율 통계
+  const deptList = Array.from(new Set(employees.map((e) => e.department).filter(Boolean)));
+  const deptStats = deptList.map((dept) => {
+    const total = employees.filter((e) => e.department === dept).length;
+    const signed = items.filter((s) => s.department === dept).length;
+    const rate = total > 0 ? Math.round((signed / total) * 100) : 0;
+    return { dept, total, signed, rate };
+  }).sort((a, b) => a.rate - b.rate);
+
+  // 미이수자 공지 텍스트 1-클릭 복사
+  const handleCopyNotice = () => {
+    const grouped = {};
+    nonAttendees.forEach((emp) => {
+      const d = emp.department || '기타';
+      if (!grouped[d]) grouped[d] = [];
+      grouped[d].push(`${emp.name}(${emp.job || '직원'})`);
+    });
+
+    let text = `[네이처요양병원] 교육 미이수자 명단 안내\n`;
+    text += `• 교육명: ${selectedTraining?.name || '재직자 교육'}\n`;
+    text += `• 미서명 인원: 총 ${nonAttendees.length}명 / 대상 ${totalTargetCount}명 (현재 이수율: ${attendanceRate}%)\n\n`;
+    for (const [dept, names] of Object.entries(grouped)) {
+      text += `▪ ${dept} (${names.length}명): ${names.join(', ')}\n`;
+    }
+    text += `\n* 참석하신 직원분들께서는 서명을 완료해 주시기 바랍니다.`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedNotice(true);
+    setTimeout(() => setCopiedNotice(false), 2500);
+  };
+
   // 검색 엔터 또는 실행
   const handleSearch = (e) => {
     e.preventDefault();
@@ -125,6 +199,56 @@ export default function ArchivePage() {
       url,
       qrDataUrl,
     });
+  };
+
+  // [결재용 통합 PDF] 보고서 + 서명부 원클릭 병합 다운로드
+  const handleDownloadMergedPdf = async (rpt) => {
+    setMergingPdf(rpt.id || rpt.trainingName);
+    try {
+      // 1. 교육 목록 중 이름이 일치하는 교육의 서명부 URL 확인
+      let tList = trainings;
+      if (!tList || tList.length === 0) {
+        const tRes = await fetch('/api/archive?type=signatures');
+        const tData = await tRes.json();
+        if (tData.success && tData.trainings) {
+          tList = tData.trainings;
+          setTrainings(tList);
+        }
+      }
+
+      const matchedTraining = (tList || []).find(
+        (t) => t.name.trim().toLowerCase() === rpt.trainingName.trim().toLowerCase()
+      );
+
+      const res = await fetch('/api/pdf/merge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          reportDocUrl: rpt.docUrl,
+          sigDocUrl: matchedTraining?.signatureDocUrl || null,
+          filename: `[통합결재철] ${rpt.trainingName}`,
+        }),
+      });
+
+      if (!res.ok) {
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || 'PDF 병합 처리 중 오류가 발생했습니다.');
+      }
+
+      const blob = await res.blob();
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = downloadUrl;
+      a.download = `[통합결재철] ${rpt.trainingName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+    } catch (e) {
+      alert(e.message);
+    } finally {
+      setMergingPdf(null);
+    }
   };
 
   return (
@@ -256,6 +380,75 @@ export default function ArchivePage() {
           </button>
         </form>
       </div>
+
+      {/* 서명부 탭일 때: 실시간 이수율(%) 대시보드 & 미이수자 추출 바 */}
+      {activeTab === 'signatures' && selectedTraining && (
+        <div className="card" style={{ padding: '16px 20px', marginBottom: 16, backgroundColor: '#FAFDFB' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, flexWrap: 'wrap', gap: 8 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <TrendingUp size={18} color="var(--primary)" />
+              <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-main)' }}>
+                교육 이수율 현황: <strong style={{ color: attendanceRate >= 80 ? 'var(--success)' : 'var(--primary)', fontSize: 16 }}>{attendanceRate}%</strong>
+              </span>
+              <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+                ({items.length}명 서명 완료 / 대상 {totalTargetCount}명)
+              </span>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowNonAttendeesModal(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 5,
+                padding: '6px 12px',
+                borderRadius: 8,
+                backgroundColor: nonAttendees.length > 0 ? '#FEF2F2' : '#F1F5F9',
+                color: nonAttendees.length > 0 ? 'var(--error)' : 'var(--text-sub)',
+                border: `1px solid ${nonAttendees.length > 0 ? '#FECACA' : 'var(--input-border)'}`,
+                fontSize: 12,
+                fontWeight: 700,
+                cursor: 'pointer',
+              }}
+            >
+              <Users size={14} /> 미이수자 확인 ({nonAttendees.length}명)
+            </button>
+          </div>
+
+          {/* 프로그레스 바 */}
+          <div style={{ width: '100%', height: 8, backgroundColor: '#E2E8F0', borderRadius: 4, overflow: 'hidden', marginBottom: 12 }}>
+            <div style={{
+              width: `${attendanceRate}%`,
+              height: '100%',
+              backgroundColor: attendanceRate >= 80 ? 'var(--success)' : 'var(--primary)',
+              borderRadius: 4,
+              transition: 'width 0.4s ease',
+            }} />
+          </div>
+
+          {/* 부서별 이수율 미니 칩 */}
+          {deptStats.length > 0 && (
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {deptStats.map((d) => (
+                <span
+                  key={d.dept}
+                  style={{
+                    fontSize: 11,
+                    padding: '3px 8px',
+                    borderRadius: 6,
+                    backgroundColor: d.rate === 100 ? '#DCFCE7' : d.rate >= 70 ? '#E0F2FE' : '#FEE2E2',
+                    color: d.rate === 100 ? '#166534' : d.rate >= 70 ? '#0369A1' : '#991B1B',
+                    fontWeight: 600,
+                  }}
+                >
+                  {d.dept}: {d.signed}/{d.total} ({d.rate}%)
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 서명부 탭일 때 상단 GDoc 발행 & QR 툴바 */}
       {activeTab === 'signatures' && selectedTraining && (
@@ -431,26 +624,50 @@ export default function ArchivePage() {
                       <td style={{ padding: '14px 16px' }}>{rpt.datetime}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--success)' }}>{rpt.actualCount}</td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        {rpt.docUrl && (
-                          <a
-                            href={rpt.docUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
+                          {rpt.docUrl && (
+                            <a
+                              href={rpt.docUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: 'var(--primary)',
+                                backgroundColor: 'var(--secondary)',
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              <ExternalLink size={13} /> 문서 열람
+                            </a>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => handleDownloadMergedPdf(rpt)}
+                            disabled={mergingPdf === (rpt.id || rpt.trainingName)}
+                            title="교육결과보고서와 참석서명부를 하나의 결재용 PDF로 병합 다운로드"
                             style={{
                               display: 'inline-flex',
                               alignItems: 'center',
                               gap: 4,
                               fontSize: 12,
                               fontWeight: 700,
-                              color: 'var(--primary)',
-                              backgroundColor: 'var(--secondary)',
+                              color: '#166534',
+                              backgroundColor: '#DCFCE7',
+                              border: '1px solid #86EFAC',
                               padding: '5px 10px',
                               borderRadius: 6,
+                              cursor: 'pointer',
                             }}
                           >
-                            <ExternalLink size={13} /> 문서 열람
-                          </a>
-                        )}
+                            <Download size={13} className={mergingPdf === (rpt.id || rpt.trainingName) ? 'animate-spin' : ''} />
+                            {mergingPdf === (rpt.id || rpt.trainingName) ? '병합 중...' : '통합 PDF'}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -591,6 +808,92 @@ export default function ArchivePage() {
                   fontSize: 13,
                   fontWeight: 600,
                 }}
+              >
+                닫기
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 미이수자 명단 모달 */}
+      {showNonAttendeesModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: 16,
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: 520, maxHeight: '85vh', display: 'flex', flexDirection: 'column', padding: 22 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Users size={20} color="var(--error)" />
+                <h3 style={{ fontSize: 17, fontWeight: 800 }}>
+                  교육 미이수자 명단 ({nonAttendees.length}명)
+                </h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowNonAttendeesModal(false)}
+                style={{ color: 'var(--text-sub)', padding: 4 }}
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <p style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 14 }}>
+              아직 {selectedTraining?.name} 서명을 완료하지 않은 직원 목록입니다. 공지 복사를 눌러 부서 메신저나 단톡방에 바로 안내할 수 있습니다.
+            </p>
+
+            <div style={{ flex: 1, overflowY: 'auto', marginBottom: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {nonAttendees.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--success)', fontWeight: 700 }}>
+                  🎉 모든 대상 직원이 서명을 완료했습니다! (이수율 100%)
+                </div>
+              ) : (
+                deptList.map((dept) => {
+                  const deptNonAttendees = nonAttendees.filter((emp) => emp.department === dept);
+                  if (deptNonAttendees.length === 0) return null;
+                  return (
+                    <div key={dept} style={{ border: '1px solid var(--input-border)', borderRadius: 8, padding: 12, backgroundColor: '#fff' }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--primary)', marginBottom: 6, display: 'flex', justifyContent: 'space-between' }}>
+                        <span>{dept}</span>
+                        <span style={{ fontSize: 12, color: 'var(--error)' }}>{deptNonAttendees.length}명 미이수</span>
+                      </div>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                        {deptNonAttendees.map((emp, i) => (
+                          <span key={i} style={{ fontSize: 12, padding: '3px 8px', borderRadius: 6, backgroundColor: '#F1F5F9', color: 'var(--text-main)' }}>
+                            {emp.name} <small style={{ color: 'var(--text-sub)' }}>({emp.job || '직원'})</small>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10 }}>
+              <button
+                type="button"
+                onClick={handleCopyNotice}
+                className="btn-primary"
+                style={{ flex: 1, padding: '11px', fontSize: 13 }}
+              >
+                {copiedNotice ? <Check size={16} /> : <Copy size={16} />}
+                {copiedNotice ? '클립보드에 복사 완료!' : '📋 공지용 텍스트 복사하기'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowNonAttendeesModal(false)}
+                style={{ padding: '11px 16px', borderRadius: 10, border: '1px solid var(--input-border)', fontSize: 13, fontWeight: 600 }}
               >
                 닫기
               </button>

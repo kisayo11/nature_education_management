@@ -914,9 +914,16 @@
       submitButton.classList.add('loading');
       submitButton.disabled = true;
 
+      const empName = document.getElementById('name').value.trim();
+      const empDept = document.getElementById('department').value;
+      const matchedEmp = Array.isArray(employeeData)
+        ? employeeData.find(e => e.name === empName && (!empDept || e.department === empDept))
+        : null;
+
       const submitData = {
-        name: document.getElementById('name').value.trim(),
-        department: document.getElementById('department').value,
+        name: empName,
+        department: empDept,
+        job: matchedEmp ? (matchedEmp.job || '') : '',
         signature: signaturePad.toDataURL('image/png'),
         trainingId: document.getElementById('trainingId').value
       };

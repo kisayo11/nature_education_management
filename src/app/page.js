@@ -634,7 +634,16 @@ function SignatureContent() {
                   type="text"
                   list="name-suggestions"
                   value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setName(val);
+                    if (!department) {
+                      const found = employees.find((emp) => emp.name.trim() === val.trim());
+                      if (found && found.department) {
+                        setDepartment(found.department);
+                      }
+                    }
+                  }}
                   placeholder="이름을 입력하거나 선택하세요"
                   required
                 />
@@ -643,6 +652,30 @@ function SignatureContent() {
                     <option key={idx} value={n} />
                   ))}
                 </datalist>
+
+                {/* 직종 및 부서 자동 매핑 확인 안내 */}
+                {name.trim() && (() => {
+                  const matched = employees.find((emp) => emp.name.trim() === name.trim() && (!department || emp.department === department));
+                  if (!matched) return null;
+                  return (
+                    <div style={{
+                      marginTop: 6,
+                      fontSize: 12,
+                      color: 'var(--primary)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      fontWeight: 600,
+                    }}>
+                      <span style={{ backgroundColor: 'var(--secondary)', padding: '2px 8px', borderRadius: 6 }}>
+                        직종: {matched.job || '일반'}
+                      </span>
+                      <span style={{ backgroundColor: '#F1F5F9', padding: '2px 8px', borderRadius: 6, color: 'var(--text-sub)' }}>
+                        소속: {matched.department}
+                      </span>
+                    </div>
+                  );
+                })()}
 
                 {/* 중복 서명 경고 */}
                 {isDuplicate && (
