@@ -60,16 +60,29 @@ export default function PlanPage() {
 
   return (
     <div style={{ maxWidth: 840, margin: '0 auto', padding: '24px 16px 80px' }}>
-      {/* 상단 타이틀 */}
+      {/* 상단 타이틀 & 업무 구분 안내 배너 */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 700, fontSize: 13 }}>
-          <FilePenLine size={16} /> 교육 양식
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+          <span style={{
+            fontSize: 11,
+            fontWeight: 800,
+            color: 'var(--primary)',
+            backgroundColor: 'var(--secondary)',
+            padding: '3px 8px',
+            borderRadius: 6,
+            border: '1px solid var(--input-border)',
+          }}>
+            📋 교육 행정 결재 문서 (담당자용)
+          </span>
+          <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+            ※ 직원 참석 전자 서명은 상단 [✍️ 직원 온라인 서명] 창구에서 별도로 진행됩니다.
+          </span>
         </div>
         <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginTop: 4, letterSpacing: -0.5 }}>
           교육 실시 계획서 작성
         </h1>
         <p style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 4 }}>
-          내용을 작성하고 제출하면 양식이 보관됩니다.
+          교육 사전 기획 및 원내 품의 결재를 위한 계획서를 작성하고 Google Docs로 자동 발행합니다.
         </p>
       </div>
 

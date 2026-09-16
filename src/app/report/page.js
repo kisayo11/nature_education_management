@@ -198,14 +198,27 @@ export default function ReportPage() {
         gap: 12,
       }}>
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--primary)', fontWeight: 700, fontSize: 13 }}>
-            <FileText size={16} /> 교육 양식
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
+            <span style={{
+              fontSize: 11,
+              fontWeight: 800,
+              color: 'var(--primary)',
+              backgroundColor: 'var(--secondary)',
+              padding: '3px 8px',
+              borderRadius: 6,
+              border: '1px solid var(--input-border)',
+            }}>
+              📋 교육 행정 결재 문서 (담당자용)
+            </span>
+            <span style={{ fontSize: 12, color: 'var(--text-sub)' }}>
+              ※ 참석자 서명부는 [문서 조회]에서 별도 열람 및 통합 PDF 병합이 가능합니다.
+            </span>
           </div>
           <h1 style={{ fontSize: 24, fontWeight: 800, color: 'var(--text-main)', marginTop: 4, letterSpacing: -0.5 }}>
-            교육결과보고서작성
+            교육 결과 보고서 작성
           </h1>
           <p style={{ fontSize: 14, color: 'var(--text-sub)', marginTop: 4 }}>
-            실시된 교육 결과를 입력하고 Google Docs 문서로 발행합니다.
+            실시된 교육 결과를 정리하고 평가 인증 제출용 Google Docs 문서를 자동 발행합니다.
           </p>
         </div>
 

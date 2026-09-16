@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 import SignaturePad from 'signature_pad';
 import QRCode from 'qrcode';
 import {
@@ -347,20 +348,55 @@ function SignatureContent() {
       {!selectedTraining ? (
         /* --- 뷰 1: 교육 선택 목록 --- */
         <div>
-          {/* 상단 배너 */}
+          {/* 상단 배너: 직원 전용 서명 창구 명시 */}
           <div style={{
             background: 'linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%)',
             borderRadius: 20,
-            padding: '24px 20px',
+            padding: '22px 20px',
             color: '#fff',
             marginBottom: 20,
             boxShadow: '0 8px 20px rgba(43, 90, 80, 0.2)',
           }}>
-            <div style={{ fontSize: 13, opacity: 0.9, marginBottom: 4 }}>네이처요양병원 재직자 교육</div>
-            <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>참석 서명하기</h1>
-            <p style={{ fontSize: 13, opacity: 0.85, marginTop: 6 }}>
-              참석하신 교육 과정을 선택하시면 바로 전자 서명이 진행됩니다.
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+              <div>
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 5,
+                  fontSize: 11,
+                  fontWeight: 800,
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                  padding: '3px 8px',
+                  borderRadius: 6,
+                  marginBottom: 8,
+                }}>
+                  📱 직원 전용 전자 서명 창구
+                </div>
+                <h1 style={{ fontSize: 22, fontWeight: 800, letterSpacing: -0.5 }}>교육 참석 서명하기</h1>
+                <p style={{ fontSize: 13, opacity: 0.9, marginTop: 6 }}>
+                  원내 직원의 교육 참석 확인을 위한 전자 서명 화면입니다. 참석하신 교육을 선택해 서명해 주세요.
+                </p>
+              </div>
+
+              <Link
+                href="/plan"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  backgroundColor: 'rgba(255,255,255,0.15)',
+                  color: '#fff',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  padding: '7px 12px',
+                  borderRadius: 8,
+                  fontSize: 12,
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                }}
+              >
+                <span>📋 담당자 행정 결재(계획서·보고서) →</span>
+              </Link>
+            </div>
           </div>
 
           {/* 목록 헤더 & 버튼 */}
@@ -399,7 +435,7 @@ function SignatureContent() {
                   fontWeight: 600,
                 }}
               >
-                <Plus size={14} /> 교육 개설
+                <Plus size={14} /> 온라인서명 개설
               </button>
             </div>
           </div>
@@ -413,7 +449,7 @@ function SignatureContent() {
           ) : trainings.length === 0 ? (
             <div className="card" style={{ textAlign: 'center', padding: '40px 20px', color: 'var(--text-sub)' }}>
               <p style={{ fontWeight: 600, fontSize: 16, marginBottom: 6 }}>현재 활성화된 교육이 없습니다.</p>
-              <p style={{ fontSize: 13 }}>우측 상단의 [+ 교육 개설] 버튼을 눌러 새 교육을 시작하세요.</p>
+              <p style={{ fontSize: 13 }}>우측 상단의 [+ 온라인서명 개설] 버튼을 눌러 새 온라인서명 과정을 시작하세요.</p>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -773,7 +809,7 @@ function SignatureContent() {
         </div>
       )}
 
-      {/* 새 교육 개설 모달 */}
+      {/* 새 온라인서명 개설 모달 */}
       {showAddModal && (
         <div style={{
           position: 'fixed',
@@ -789,12 +825,12 @@ function SignatureContent() {
           padding: 20,
         }}>
           <div className="card" style={{ width: '100%', maxWidth: 420 }}>
-            <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>새 교육 과정 개설</h2>
+            <h2 style={{ fontSize: 18, fontWeight: 800, marginBottom: 16 }}>새 온라인서명 개설</h2>
 
             {createdQr ? (
               <div style={{ textAlign: 'center', padding: '10px 0' }}>
                 <div style={{ color: 'var(--success)', fontWeight: 800, fontSize: 16, marginBottom: 8 }}>
-                  🎉 교육 개설 및 QR 생성 완료!
+                  🎉 온라인서명 개설 및 QR 생성 완료!
                 </div>
                 <div style={{ fontSize: 13, color: 'var(--text-sub)', marginBottom: 14 }}>
                   직원들이 스마트폰 카메라로 아래 QR을 찍으면 바로 서명 페이지로 접속됩니다.
@@ -880,7 +916,7 @@ function SignatureContent() {
                     취소
                   </button>
                   <button type="submit" className="btn-primary" style={{ flex: 1 }}>
-                    개설 및 QR 생성
+                    온라인서명 개설 및 QR 생성
                   </button>
                 </div>
               </form>

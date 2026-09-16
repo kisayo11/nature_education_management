@@ -5,18 +5,93 @@ const SPREADSHEET_ID = process.env.GOOGLE_SPREADSHEET_ID;
 /**
  * 날짜 문자열('2021. 8. 2', '2026-03-25', '2026.03.25' 등)을 Date 객체 또는 YYYY-MM-DD 숫자로 정규화
  */
-function parseDateStrToTime(str) {
+/**
+ * 날짜 문자열 정규화 (시작일시 00:00:00, 종료일시 23:59:59)
+ */
+function parseDateStrToStartTime(str) {
   if (!str) return null;
   const s = String(str).trim();
-  // 정규식으로 년, 월, 일 추출
   const match = s.match(/(\d{4})[^\d]+(\d{1,2})[^\d]+(\d{1,2})/);
   if (match) {
     const year = parseInt(match[1], 10);
     const month = parseInt(match[2], 10) - 1;
     const day = parseInt(match[3], 10);
-    return new Date(year, month, day).getTime();
+    return new Date(year, month, day, 0, 0, 0, 0).getTime();
   }
   return null;
+}
+
+function parseDateStrToEndTime(str) {
+  if (!str) return null;
+  const s = String(str).trim();
+  const match = s.match(/(\d{4})[^\d]+(\d{1,2})[^\d]+(\d{1,2})/);
+  if (match) {
+    const year = parseInt(match[1], 10);
+    const month = parseInt(match[2], 10) - 1;
+    const day = parseInt(match[3], 10);
+    return new Date(year, month, day, 23, 59, 59, 999).getTime();
+  }
+  return null;
+}
+
+// 부서 유사어 매핑 사전 (실무 혼용 명칭 지원)
+const DEPT_ALIASES = {
+  '간호과': '간호부',
+  '간호부': '간호과',
+  '원무팀': '원무과',
+  '원무과': '원무팀',
+  '총무과': '총무팀',
+  '총무팀': '총무과',
+  '재활': '재활치료센터',
+  '재활과': '재활치료센터',
+  '재활팀': '재활치료센터',
+  '재활센터': '재활치료센터',
+  '영양과': '영양팀',
+  '영양실': '영양팀',
+  '조리팀': '영양팀',
+  '조리실': '영양팀',
+  '시설팀': '시설미화팀',
+  '미화팀': '시설미화팀',
+  '시설과': '시설미화팀',
+  '시설관리': '시설미화팀',
+  '심사실': '심사팀',
+  '심사과': '심사팀',
+  '약제부': '약제과',
+  '방사선과': '방사선실',
+  '진료과': '진료부',
+};
+
+function matchesTarget(emp, targetStr) {
+  if (!targetStr) return true;
+  const t = targetStr.trim();
+  if (['전체', '전직원', '전 직원', '전체직원', '모든직원', '모든 직원', '전 부서', '전부서'].includes(t)) {
+    return true;
+  }
+
+  // 쉼표, 슬래시, 앰퍼샌드, 플러스로 다중 부서/직종 분리
+  const tokens = t.split(/[,/&+]/).map((s) => s.trim()).filter(Boolean);
+  if (tokens.length === 0) return true;
+
+  return tokens.some((token) => {
+    // 1. 부서 직접 포함/일치
+    if (emp.department && (emp.department.includes(token) || token.includes(emp.department))) {
+      return true;
+    }
+    // 2. 부서 유사어 매핑
+    const alias = DEPT_ALIASES[token];
+    if (alias && emp.department && (emp.department.includes(alias) || alias.includes(emp.department))) {
+      return true;
+    }
+    // 3. 직종(job) 매칭 (예: '간호사', '치료사', '조리원' 등)
+    if (emp.job && (emp.job.includes(token) || token.includes(emp.job))) {
+      return true;
+    }
+    // 4. 직위(position) 매칭 (예: '과장', '팀장' 등)
+    if (emp.position && (emp.position.includes(token) || token.includes(emp.position))) {
+      return true;
+    }
+    return false;
+  });
 }
 
 /**
@@ -112,18 +187,19 @@ export async function updateTrainingDocUrl(trainingId, docUrl) {
 export async function getEmployeesAtDate(targetDateStr, targetDepartment = '전체') {
   const sheets = getSheetsClient();
 
-  const targetTime = parseDateStrToTime(targetDateStr) || new Date().getTime();
+  const targetStartTime = parseDateStrToStartTime(targetDateStr) || Date.now();
+  const targetEndTime = parseDateStrToEndTime(targetDateStr) || Date.now();
 
-  // 1. 재직자현황(링크) 탭 읽기
+  // 1. 재직자현황(링크) 탭 읽기 (Col A ~ L)
   const empRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "'재직자현황(링크)'!B3:I300",
+    range: "'재직자현황(링크)'!A3:L300",
   });
 
-  // 2. 퇴사자현황(링크) 탭 읽기
+  // 2. 퇴사자현황(링크) 탭 읽기 (Col A ~ L)
   const retRes = await sheets.spreadsheets.values.get({
     spreadsheetId: SPREADSHEET_ID,
-    range: "'퇴사자현황(링크)'!B4:I300",
+    range: "'퇴사자현황(링크)'!A4:L300",
   });
 
   const empRows = empRes.data.values || [];
@@ -132,26 +208,28 @@ export async function getEmployeesAtDate(targetDateStr, targetDepartment = '전�
   const employeeMap = new Map(); // 이름+부서 기준 중복 방지
 
   // 재직자 탭 파싱
-  // Row: [순번, ?, 부서, 직위, 직종, 이름, 입사일, 퇴사일]
-  // 인덱스: 0:순번, 1:?, 2:부서, 3:직위, 4:직종, 5:이름, 6:입사일, 7:퇴사일
+  // 실제 시트 컬럼 (0-based A열 기준):
+  // Col D(3): 부서, Col E(4): 직종, Col F(5): 입사일, Col G(6): 퇴사일, Col H(7): 이름, Col I(8): 직위
   for (const row of empRows) {
-    const dept = (row[2] || '').trim();
-    const position = (row[3] || '').trim();
+    const dept = (row[3] || '').trim();
     const job = (row[4] || '').trim();
-    const name = (row[5] || '').trim();
-    const joinDateStr = (row[6] || '').trim();
-    const leaveDateStr = (row[7] || '').trim();
+    const joinDateStr = (row[5] || '').trim();
+    const leaveDateStr = (row[6] || '').trim();
+    const name = (row[7] || '').trim();
+    const position = (row[8] || '').trim();
 
-    if (!name || !dept) continue;
+    // 더미 행(마침표 등) 및 필수값 검증
+    if (!name || name.length < 2 || /^[\.\s\-_]+$/.test(name)) continue;
+    if (!dept) continue;
 
-    const joinTime = parseDateStrToTime(joinDateStr);
-    const leaveTime = parseDateStrToTime(leaveDateStr);
+    const joinTime = parseDateStrToStartTime(joinDateStr);
+    const leaveTime = parseDateStrToEndTime(leaveDateStr);
 
-    // 판별 1: 입사일이 교육일 이전이어야 함
-    if (joinTime && joinTime > targetTime) continue;
+    // 판별 1: 입사일이 교육일 이후이면 대상 제외 (아직 미입사)
+    if (joinTime && joinTime > targetEndTime) continue;
 
-    // 판별 2: 퇴사일이 명시되어 있다면, 교육일 당시에는 아직 퇴사 전이어야 함
-    if (leaveTime && leaveTime < targetTime) continue;
+    // 판별 2: 퇴사일이 명시되어 있고 교육일 이전이면 대상 제외 (이미 퇴사)
+    if (leaveTime && leaveTime < targetStartTime) continue;
 
     const key = `${dept}_${name}`;
     employeeMap.set(key, {
@@ -159,36 +237,42 @@ export async function getEmployeesAtDate(targetDateStr, targetDepartment = '전�
       department: dept,
       position,
       job,
+      joinDate: joinDateStr,
+      leaveDate: leaveDateStr,
       status: '재직',
     });
   }
 
   // 퇴사자 탭 파싱 (교육 당시에는 재직 중이었던 퇴사자 포함)
+  // Col D(3): 부서, Col E(4): 직위, Col F(5): 직종, Col G(6): 이름, Col H(7): 입사일, Col I(8): 퇴사일
   for (const row of retRows) {
-    const dept = (row[2] || '').trim();
-    const position = (row[3] || '').trim();
-    const job = (row[4] || '').trim();
-    const name = (row[5] || '').trim();
-    const joinDateStr = (row[6] || '').trim();
-    const leaveDateStr = (row[7] || '').trim();
+    const dept = (row[3] || '').trim();
+    const position = (row[4] || '').trim();
+    const job = (row[5] || '').trim();
+    const name = (row[6] || '').trim();
+    const joinDateStr = (row[7] || '').trim();
+    const leaveDateStr = (row[8] || '').trim();
 
-    if (!name) continue;
+    if (!name || name.length < 2 || /^[\.\s\-_]+$/.test(name)) continue;
 
-    const joinTime = parseDateStrToTime(joinDateStr);
-    const leaveTime = parseDateStrToTime(leaveDateStr);
+    const joinTime = parseDateStrToStartTime(joinDateStr);
+    const leaveTime = parseDateStrToEndTime(leaveDateStr);
 
-    // 입사일 이전 교육인 경우 패스
-    if (joinTime && joinTime > targetTime) continue;
+    // 교육일 당시 재직 여부 판별: 입사일 <= 교육일 <= 퇴사일
+    if (joinTime && joinTime > targetEndTime) continue;
+    if (leaveTime && leaveTime < targetStartTime) continue;
 
-    // 퇴사일이 교육일 이후인 경우 -> 교육 당시에는 재직 중이었음!
-    if (leaveTime && leaveTime >= targetTime) {
-      const key = `${dept}_${name}`;
+    // 퇴사일이 교육일 이후인 경우 -> 교육 당시에는 재직 중이었음
+    if (leaveTime && leaveTime >= targetStartTime && (!joinTime || joinTime <= targetEndTime)) {
+      const key = `${dept || '기타'}_${name}`;
       if (!employeeMap.has(key)) {
         employeeMap.set(key, {
           name,
-          department: dept || '기타',
+          department: dept || '퇴사자(교육당시재직)',
           position,
           job,
+          joinDate: joinDateStr,
+          leaveDate: leaveDateStr,
           status: '교육당시재직(현재퇴사)',
         });
       }
@@ -197,10 +281,9 @@ export async function getEmployeesAtDate(targetDateStr, targetDepartment = '전�
 
   let result = Array.from(employeeMap.values());
 
-  // 부서 필터 적용
-  if (targetDepartment && targetDepartment !== '전체') {
-    const deptList = targetDepartment.split(',').map((d) => d.trim());
-    result = result.filter((emp) => deptList.some((d) => emp.department.includes(d) || d.includes(emp.department)));
+  // 대상 필터 적용
+  if (targetDepartment) {
+    result = result.filter((emp) => matchesTarget(emp, targetDepartment));
   }
 
   // 부서명, 이름순 정렬
