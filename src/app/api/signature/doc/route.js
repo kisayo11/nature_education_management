@@ -30,6 +30,7 @@ export async function POST(request) {
       target: training.target,
       signatures,
       folderId: training.folderId,
+      oldDocUrl: training.signatureDocUrl,
     });
 
     // 4. 통합 DB 스프레드시트 '서명_안내도'의 I열(서명문서URL) 업데이트

@@ -49,8 +49,8 @@ function SignatureContent() {
   // QR 코드 보기 모달
   const [viewQrModal, setViewQrModal] = useState(null);
 
-  // 서명부 GDoc 생성 상태
-  const [docGenerating, setDocGenerating] = useState(false);
+  // 서명부 GDoc 생성 상태 (진행 중인 trainingId 저장)
+  const [docGenerating, setDocGenerating] = useState(null);
   const [generatedDoc, setGeneratedDoc] = useState(null);
 
   // 서명 캔버스
@@ -283,9 +283,9 @@ function SignatureContent() {
     });
   };
 
-  // 서명부 GDoc 생성
+  // 서명부 GDoc 생성 및 최신화
   const handleGenerateDoc = async (trainingId) => {
-    setDocGenerating(true);
+    setDocGenerating(trainingId);
     setGeneratedDoc(null);
     try {
       const res = await fetch('/api/signature/doc', {
@@ -295,7 +295,7 @@ function SignatureContent() {
       });
       const data = await res.json();
       if (data.success) {
-        showToast('서명부가 성공적으로 생성되었습니다!');
+        showToast(`서명부 문서가 최신화되었습니다! (${data.attendanceCount ?? 0}명 참석)`);
         setGeneratedDoc(data);
         loadTrainings(); // 시트 URL 업데이트 반영
       } else {
@@ -304,7 +304,7 @@ function SignatureContent() {
     } catch (err) {
       showToast('네트워크 오류', 'error');
     } finally {
-      setDocGenerating(false);
+      setDocGenerating(null);
     }
   };
 
@@ -488,29 +488,51 @@ function SignatureContent() {
                     </button>
 
                     {t.signatureDocUrl ? (
-                      <a
-                        href={t.signatureDocUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: 4,
-                          fontSize: 11,
-                          fontWeight: 600,
-                          color: '#166534',
-                          backgroundColor: '#DCFCE7',
-                          padding: '4px 8px',
-                          borderRadius: 6,
-                        }}
-                      >
-                        <FileText size={13} /> 서명부 열람
-                      </a>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                        <a
+                          href={t.signatureDocUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 4,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: '#166534',
+                            backgroundColor: '#DCFCE7',
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          <FileText size={13} /> 서명부 열람
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => handleGenerateDoc(t.id)}
+                          disabled={Boolean(docGenerating)}
+                          title="새로 들어온 서명을 반영하여 서명부 문서 최신화"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 3,
+                            fontSize: 11,
+                            fontWeight: 600,
+                            color: 'var(--primary)',
+                            backgroundColor: 'var(--secondary)',
+                            padding: '4px 8px',
+                            borderRadius: 6,
+                          }}
+                        >
+                          <RefreshCw size={12} className={docGenerating === t.id ? 'animate-spin' : ''} />
+                          {docGenerating === t.id ? '최신화 중...' : '최신화'}
+                        </button>
+                      </div>
                     ) : (
                       <button
                         type="button"
                         onClick={() => handleGenerateDoc(t.id)}
-                        disabled={docGenerating}
+                        disabled={Boolean(docGenerating)}
                         style={{
                           display: 'inline-flex',
                           alignItems: 'center',
@@ -523,7 +545,15 @@ function SignatureContent() {
                           borderRadius: 6,
                         }}
                       >
-                        <FileText size={13} /> 서명부 생성
+                        {docGenerating === t.id ? (
+                          <>
+                            <RefreshCw size={13} className="animate-spin" /> 생성 중...
+                          </>
+                        ) : (
+                          <>
+                            <FileText size={13} /> 서명부 생성
+                          </>
+                        )}
                       </button>
                     )}
                   </div>

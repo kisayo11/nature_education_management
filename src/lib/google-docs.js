@@ -89,6 +89,7 @@ export async function createSignatureAttendanceDoc({
   target,
   signatures,
   folderId,
+  oldDocUrl,
 }) {
   const drive = getDriveClient();
   const docs = getDocsClient();
@@ -222,6 +223,21 @@ export async function createSignatureAttendanceDoc({
         documentId: docId,
         requestBody: { requests: cellRequests },
       });
+    }
+  }
+
+  // 이전 서명부 문서가 존재하는 경우 구글 드라이브에 중복 파일이 쌓이지 않도록 휴지통으로 정리
+  if (oldDocUrl) {
+    try {
+      const match = oldDocUrl.match(/\/document\/d\/([a-zA-Z0-9-_]+)/);
+      if (match && match[1] && match[1] !== docId) {
+        await drive.files.update({
+          fileId: match[1],
+          requestBody: { trashed: true },
+        });
+      }
+    } catch (cleanErr) {
+      console.warn('이전 서명부 문서 휴지통 정리 중 알림:', cleanErr.message);
     }
   }
 
