@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
-import { getPlans, getReports, getSignatures, getTrainings } from '@/lib/google-sheets';
+import { getPlans, getReports, getSignatures, getTrainings, getNonAttendeesRecords } from '@/lib/google-sheets';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
-    const type = searchParams.get('type') || 'plans'; // plans | reports | signatures
+    const type = searchParams.get('type') || 'plans'; // plans | reports | signatures | ledgers
     const query = (searchParams.get('q') || '').toLowerCase().trim();
 
     if (type === 'plans') {
@@ -35,6 +35,20 @@ export async function GET(request) {
         );
       }
       return NextResponse.json({ success: true, items: reports });
+    }
+
+    if (type === 'ledgers') {
+      let ledgers = await getNonAttendeesRecords();
+      if (query) {
+        ledgers = ledgers.filter(
+          (l) =>
+            l.trainingName.toLowerCase().includes(query) ||
+            l.author.toLowerCase().includes(query) ||
+            l.year.includes(query) ||
+            l.createdAt.includes(query)
+        );
+      }
+      return NextResponse.json({ success: true, items: ledgers });
     }
 
     if (type === 'signatures') {

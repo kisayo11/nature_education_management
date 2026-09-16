@@ -482,3 +482,94 @@ export async function addReportRecord(data) {
 
   return { reportId, ...data };
 }
+
+/**
+ * [6] 미이수자_관리대장 CRUD
+ */
+export async function getNonAttendeesRecords() {
+  const sheets = getSheetsClient();
+  try {
+    const res = await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "'미이수자_관리대장'!A2:I500",
+    });
+    const rows = res.data.values || [];
+    return rows.map((r) => ({
+      id: r[0] || '',
+      createdAt: r[1] || '',
+      year: r[2] || '',
+      trainingName: r[3] || '',
+      itemCount: r[4] || '0',
+      author: r[5] || '',
+      docUrl: r[6] || '',
+      pdfUrl: r[7] || '',
+      department: r[8] || '원무과',
+    })).reverse();
+  } catch (err) {
+    return [];
+  }
+}
+
+export async function addNonAttendeesRecord(data) {
+  const sheets = getSheetsClient();
+  const ledgerId = `LED-${Date.now().toString().slice(-6)}`;
+
+  // 시트 탭 존재 여부 확인 및 없으면 생성 시도
+  try {
+    await sheets.spreadsheets.values.get({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "'미이수자_관리대장'!A1:A1",
+    });
+  } catch (err) {
+    try {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId: SPREADSHEET_ID,
+        requestBody: {
+          requests: [
+            {
+              addSheet: {
+                properties: { title: '미이수자_관리대장' },
+              },
+            },
+          ],
+        },
+      });
+      await sheets.spreadsheets.values.append({
+        spreadsheetId: SPREADSHEET_ID,
+        range: "'미이수자_관리대장'!A1:I1",
+        valueInputOption: 'USER_ENTERED',
+        requestBody: {
+          values: [['관리번호', '작성일시', '해당연도', '교육명', '미이수자수', '작성자', '구글문서URL', 'PDF URL', '소속부서']],
+        },
+      });
+    } catch (createErr) {
+      console.warn('미이수자_관리대장 탭 생성 안내:', createErr.message);
+    }
+  }
+
+  const row = [
+    ledgerId,
+    data.createdAt || new Date().toISOString().split('T')[0],
+    data.year || new Date().getFullYear(),
+    data.trainingName || '',
+    data.itemCount || (data.items ? data.items.length : 0),
+    data.author || '',
+    data.docUrl || '',
+    data.pdfUrl || '',
+    data.department || '원무과',
+  ];
+
+  try {
+    await sheets.spreadsheets.values.append({
+      spreadsheetId: SPREADSHEET_ID,
+      range: "'미이수자_관리대장'!A:I",
+      valueInputOption: 'USER_ENTERED',
+      requestBody: { values: [row] },
+    });
+  } catch (appendErr) {
+    console.warn('미이수자_관리대장 행 추가 안내:', appendErr.message);
+  }
+
+  return { ledgerId, ...data };
+}
+

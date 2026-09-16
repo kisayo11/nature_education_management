@@ -16,7 +16,8 @@ import {
   Copy,
   Check,
   X,
-  TrendingUp
+  TrendingUp,
+  ClipboardList,
 } from 'lucide-react';
 
 export default function ArchivePage() {
@@ -315,6 +316,24 @@ export default function ArchivePage() {
           }}
         >
           <FileText size={16} /> 교육결과보고서 목록
+        </button>
+
+        <button
+          onClick={() => { setActiveTab('ledgers'); setItems([]); }}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: 6,
+            padding: '10px 18px',
+            borderRadius: 10,
+            fontSize: 14,
+            fontWeight: activeTab === 'ledgers' ? 700 : 500,
+            backgroundColor: activeTab === 'ledgers' ? 'var(--primary)' : '#fff',
+            color: activeTab === 'ledgers' ? '#fff' : 'var(--text-sub)',
+            border: activeTab === 'ledgers' ? 'none' : '1px solid var(--input-border)',
+          }}
+        >
+          <ClipboardList size={16} /> 미이수자 관리대장 목록
         </button>
 
         <button
@@ -676,6 +695,76 @@ export default function ArchivePage() {
                             <Download size={13} className={mergingPdf === (rpt.id || rpt.trainingName) ? 'animate-spin' : ''} />
                             {mergingPdf === (rpt.id || rpt.trainingName) ? '병합 중...' : '통합 PDF'}
                           </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+
+            {activeTab === 'ledgers' && (
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
+                <thead>
+                  <tr style={{ backgroundColor: '#F8FAF9', borderBottom: '1.5px solid var(--input-border)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
+                    <th style={{ padding: '14px 16px' }}>작성일</th>
+                    <th style={{ padding: '14px 16px' }}>해당연도</th>
+                    <th style={{ padding: '14px 16px' }}>교육명</th>
+                    <th style={{ padding: '14px 16px' }}>미이수자 수</th>
+                    <th style={{ padding: '14px 16px' }}>작성자</th>
+                    <th style={{ padding: '14px 16px', textAlign: 'center' }}>대장 문서 열람</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {items.map((ledger, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
+                      <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>{ledger.createdAt}</td>
+                      <td style={{ padding: '14px 16px', fontWeight: 600 }}>{ledger.year}년</td>
+                      <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary)' }}>{ledger.trainingName || '미지정'}</td>
+                      <td style={{ padding: '14px 16px', color: 'var(--error)', fontWeight: 700 }}>{ledger.itemCount}명</td>
+                      <td style={{ padding: '14px 16px' }}>{ledger.author} ({ledger.department})</td>
+                      <td style={{ padding: '14px 16px', textAlign: 'center' }}>
+                        <div style={{ display: 'inline-flex', gap: 6, alignItems: 'center', justifyContent: 'center' }}>
+                          {ledger.docUrl && (
+                            <a
+                              href={ledger.docUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontSize: 12,
+                                fontWeight: 700,
+                                color: 'var(--primary)',
+                                backgroundColor: 'var(--secondary)',
+                                padding: '5px 10px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              <ExternalLink size={13} /> GDoc 대장
+                            </a>
+                          )}
+                          {ledger.pdfUrl && (
+                            <a
+                              href={ledger.pdfUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 4,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                color: 'var(--text-main)',
+                                backgroundColor: '#F1F5F9',
+                                padding: '5px 8px',
+                                borderRadius: 6,
+                              }}
+                            >
+                              <Download size={13} /> PDF
+                            </a>
+                          )}
                         </div>
                       </td>
                     </tr>
