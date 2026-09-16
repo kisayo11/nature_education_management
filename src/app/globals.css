@@ -72,11 +72,21 @@ input:focus, select:focus, textarea:focus {
   gap: 8px;
   transition: all 0.2s ease;
   box-shadow: 0 4px 12px rgba(43, 90, 80, 0.2);
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
 }
 
-.btn-primary:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(43, 90, 80, 0.28);
+@media (hover: hover) {
+  .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(43, 90, 80, 0.28);
+  }
+}
+
+.btn-primary:active {
+  transform: scale(0.98);
+  opacity: 0.95;
 }
 
 .btn-primary:disabled {

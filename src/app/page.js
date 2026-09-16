@@ -320,18 +320,27 @@ function SignatureContent() {
           backgroundColor: toast.type === 'error' ? '#FFF5F5' : '#F0FDF4',
           border: `1.5px solid ${toast.type === 'error' ? 'var(--error)' : 'var(--success)'}`,
           color: toast.type === 'error' ? 'var(--error)' : 'var(--success)',
-          padding: '12px 20px',
-          borderRadius: 30,
+          padding: '13px 22px',
+          borderRadius: 28,
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.12)',
+          gap: 10,
+          boxShadow: '0 8px 24px rgba(0,0,0,0.14)',
           zIndex: 9999,
           fontSize: 14,
           fontWeight: 600,
+          width: 'max-content',
+          maxWidth: 'min(90vw, 420px)',
+          boxSizing: 'border-box',
+          wordBreak: 'keep-all',
+          lineHeight: 1.45,
         }}>
-          {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
-          {toast.message}
+          <div style={{ flexShrink: 0, display: 'flex', alignItems: 'center' }}>
+            {toast.type === 'error' ? <AlertCircle size={18} /> : <CheckCircle2 size={18} />}
+          </div>
+          <span style={{ flex: 1, lineHeight: 1.45, letterSpacing: -0.2 }}>
+            {toast.message}
+          </span>
         </div>
       )}
 
@@ -678,6 +687,11 @@ function SignatureContent() {
                 disabled={submitting || isDuplicate}
                 className="btn-primary"
                 style={{ width: '100%', marginTop: 8 }}
+                onPointerDown={() => {
+                  if (typeof document !== 'undefined' && document.activeElement && typeof document.activeElement.blur === 'function') {
+                    document.activeElement.blur();
+                  }
+                }}
               >
                 {submitting ? (
                   <>

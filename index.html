@@ -10,7 +10,7 @@
   <link rel="stylesheet" as="style" crossorigin
     href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
   <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.5/dist/signature_pad.umd.min.js"></script>
-  <title>네이처요양병원 재직자교육 2026</title>
+  <title>네이처요양병원 재직자교육</title>
   <style>
     :root {
       --primary: #2B5A50;
@@ -231,9 +231,17 @@
     }
 
     @keyframes pulse {
-      0% { opacity: 0.7; }
-      50% { opacity: 1; }
-      100% { opacity: 0.7; }
+      0% {
+        opacity: 0.7;
+      }
+
+      50% {
+        opacity: 1;
+      }
+
+      100% {
+        opacity: 0.7;
+      }
     }
 
     /* --- 뷰 2: 서명 페이지 (이전 index.html) --- */
@@ -420,15 +428,29 @@
       align-items: center;
       width: 100%;
       margin-top: 10px;
-      transition: all 0.2s;
+      transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
       box-shadow: 0 4px 12px rgba(43, 90, 80, 0.2);
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
     }
 
-    .submit-btn:hover,
+    .submit-btn * {
+      pointer-events: none;
+    }
+
+    @media (hover: hover) {
+      .submit-btn:hover {
+        background-color: #21453E;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(43, 90, 80, 0.3);
+      }
+    }
+
     .submit-btn:active {
-      background-color: #21453E;
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px rgba(43, 90, 80, 0.3);
+      transform: scale(0.98);
+      background-color: #1E3F38;
+      box-shadow: 0 2px 6px rgba(43, 90, 80, 0.2);
     }
 
     .submit-btn:disabled {
@@ -479,34 +501,54 @@
       transform: translateX(-50%);
       background-color: var(--text-main);
       color: white;
-      padding: 14px 24px;
-      border-radius: 30px;
+      padding: 13px 22px;
+      border-radius: 28px;
       font-weight: 500;
       font-size: 0.95rem;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-      transition: bottom 0.4s cubic-bezier(0.68, -0.55, 0.26, 1.55);
-      z-index: 100;
+      line-height: 1.45;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+      transition: bottom 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+      z-index: 9999;
       display: flex;
       align-items: center;
-      gap: 8px;
-      white-space: nowrap;
+      gap: 10px;
+      width: max-content;
+      max-width: min(90vw, 420px);
+      box-sizing: border-box;
+      word-break: keep-all;
+      opacity: 0;
+      pointer-events: none;
     }
 
     .toast.show {
-      bottom: 40px;
+      bottom: 36px;
+      opacity: 1;
+    }
+
+    .toast #toast-icon {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .toast #toast-msg {
+      flex: 1;
+      line-height: 1.45;
+      letter-spacing: -0.2px;
     }
 
     .toast.success {
-      background-color: var(--success);
+      background-color: #15803D;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(21, 128, 61, 0.3);
     }
 
     .toast.error {
-      background-color: var(--error);
-      border-radius: 12px;
-      padding: 16px 20px;
-      white-space: normal;
-      width: 90vw;
-      max-width: 400px;
+      background-color: #DC2626;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      box-shadow: 0 8px 24px rgba(220, 38, 38, 0.3);
     }
   </style>
 </head>
@@ -565,7 +607,8 @@
 
         <div class="form-group">
           <label for="name">이름 <span>*</span></label>
-          <input type="text" id="name" name="name" placeholder="이름을 입력하거나 선택하세요" required autocomplete="off" list="employee-list">
+          <input type="text" id="name" name="name" placeholder="이름을 입력하거나 선택하세요" required autocomplete="off"
+            list="employee-list">
           <datalist id="employee-list"></datalist>
         </div>
 
@@ -642,7 +685,7 @@
     const toast = document.getElementById('toast');
     const toastMsg = document.getElementById('toast-msg');
     const toastIcon = document.getElementById('toast-icon');
-    
+
     let signaturePad;
     let employeeData = []; // 재직자 데이터 저장용
 
@@ -744,25 +787,25 @@
             if (Array.isArray(parsedCache) && parsedCache.length > 0) {
               trainingsData = parsedCache;
             }
-          } catch(e) {
+          } catch (e) {
             console.error("캐시 파싱 오류, 새로 불러옵니다.");
             sessionStorage.removeItem('cached_training_list');
           }
-        } 
-        
+        }
+
         if (!trainingsData) {
           // 캐시가 없거나 유효하지 않으면 구글 스크립트로 Fetch 요청 (항상 최신 정보)
           const response = await fetch(`${ScriptURL}?action=getTrainings`);
           const data = await response.json();
-          
+
           if (data.success && data.trainings) {
             trainingsData = data.trainings;
             // 정상 데이터인 경우에만 탭 유지 동안 임시 저장
             if (trainingsData.length > 0) {
-                sessionStorage.setItem('cached_training_list', JSON.stringify(trainingsData));
+              sessionStorage.setItem('cached_training_list', JSON.stringify(trainingsData));
             }
           } else {
-             throw new Error("데이터를 찾을 수 없거나 형식 오류 발생");
+            throw new Error("데이터를 찾을 수 없거나 형식 오류 발생");
           }
         }
 
@@ -844,6 +887,15 @@
       setTimeout(() => sigContainer.style.borderColor = '', 200);
     });
 
+    // 모바일 등에서 키보드/인풋 포커스 상태로 제출 버튼을 탭할 때
+    // 첫 터치가 blur(키보드 닫기)로 소모되어 2번 눌러야 하는 현상 방지
+    const dismissActiveInput = () => {
+      if (document.activeElement && typeof document.activeElement.blur === 'function') {
+        document.activeElement.blur();
+      }
+    };
+    submitButton.addEventListener('pointerdown', dismissActiveInput);
+    submitButton.addEventListener('touchstart', dismissActiveInput, { passive: true });
 
     // ----- [4] 폼 제출 및 POST 요청 -----
     form.addEventListener('submit', async (event) => {
