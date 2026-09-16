@@ -209,17 +209,25 @@ export async function getEmployeesAtDate(targetDateStr, targetDepartment = '전�
 
   // 재직자 탭 파싱
   // 실제 시트 컬럼 (0-based A열 기준):
-  // Col D(3): 부서, Col E(4): 직종, Col F(5): 입사일, Col G(6): 퇴사일, Col H(7): 이름, Col I(8): 직위
+  // Col D(3): 부서, Col E(4): 직위, Col F(5): 직종, Col G(6): 이름, Col H(7): 입사일, Col I(8): 퇴사일
   for (const row of empRows) {
     const dept = (row[3] || '').trim();
-    const job = (row[4] || '').trim();
-    const joinDateStr = (row[5] || '').trim();
-    const leaveDateStr = (row[6] || '').trim();
-    const name = (row[7] || '').trim();
-    const position = (row[8] || '').trim();
+    const position = (row[4] || '').trim();
+    const job = (row[5] || '').trim();
+    let name = (row[6] || '').trim();
+    let joinDateStr = (row[7] || '').trim();
+    let leaveDateStr = (row[8] || '').trim();
 
-    // 더미 행(마침표 등) 및 필수값 검증
-    if (!name || name.length < 2 || /^[\.\s\-_]+$/.test(name)) continue;
+    // 시트에서 가끔 성명과 입사일 열이 뒤바뀐 행(예: 6열에 날짜, 7열에 한글 이름) 자동 보정
+    if (/^\d{4}\./.test(name) && /^[가-힣]{2,5}$/.test(joinDateStr)) {
+      const tempName = joinDateStr;
+      joinDateStr = leaveDateStr || name;
+      name = tempName;
+      leaveDateStr = '';
+    }
+
+    // 더미 행(마침표 등), 필수값 및 숫자로 시작하는 잘못된 행 검증
+    if (!name || name.length < 2 || /^[\.\s\-_]+$/.test(name) || /^\d/.test(name)) continue;
     if (!dept) continue;
 
     const joinTime = parseDateStrToStartTime(joinDateStr);
