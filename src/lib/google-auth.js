@@ -11,21 +11,7 @@ let authClient = null;
 export function getGoogleAuth() {
   if (authClient) return authClient;
 
-  const clientId = process.env.GOOGLE_CLIENT_ID;
-  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
-
-  // 1. [우선순위 1] OAuth2 Refresh Token (원무과장님 유료 개인 드라이브 용량 사용 - 파일 생성 쿼터 무제한)
-  if (clientId && clientSecret && refreshToken) {
-    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
-    oauth2Client.setCredentials({
-      refresh_token: refreshToken,
-    });
-    authClient = oauth2Client;
-    return authClient;
-  }
-
-  // 2. [대안 2] 서비스 계정 (Service Account)
+  // 1. [우선순위 1] 서비스 계정 (Service Account - 토큰 만료 없이 영구 안정 동작)
   const email = process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL;
   let privateKey = process.env.GOOGLE_PRIVATE_KEY;
 
@@ -36,6 +22,20 @@ export function getGoogleAuth() {
       key: privateKey,
       scopes: SCOPES,
     });
+    return authClient;
+  }
+
+  // 2. [대안 2] OAuth2 Refresh Token
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials({
+      refresh_token: refreshToken,
+    });
+    authClient = oauth2Client;
     return authClient;
   }
 
