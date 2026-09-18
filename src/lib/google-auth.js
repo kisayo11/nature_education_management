@@ -53,6 +53,18 @@ export function getDocsClient() {
 }
 
 export function getDriveClient() {
+  const clientId = process.env.GOOGLE_CLIENT_ID;
+  const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+  const refreshToken = process.env.GOOGLE_REFRESH_TOKEN;
+
+  // 드라이브 업로드는 서비스 계정(쿼터 0바이트)이 아닌 원무과장님 계정(OAuth2)을 우선 사용
+  if (clientId && clientSecret && refreshToken) {
+    const oauth2Client = new google.auth.OAuth2(clientId, clientSecret);
+    oauth2Client.setCredentials({ refresh_token: refreshToken });
+    return google.drive({ version: 'v3', auth: oauth2Client });
+  }
+
   const auth = getGoogleAuth();
   return google.drive({ version: 'v3', auth });
 }
+

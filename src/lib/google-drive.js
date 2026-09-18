@@ -34,6 +34,7 @@ export async function uploadFileToDrive({ base64Data, buffer, filename, mimeType
     requestBody: fileMetadata,
     media,
     fields: 'id, name, webViewLink, webContentLink',
+    supportsAllDrives: true,
   });
 
   // 해당 파일에 공개 또는 링크 있는 사용자 읽기 권한 부여 (필요 시)
