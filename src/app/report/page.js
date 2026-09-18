@@ -20,6 +20,7 @@ export default function ReportPage() {
     hostDept: '',
     instructor: '',
     content: '',
+    evaluation: '',
   });
 
   const [photoBase64, setPhotoBase64] = useState(null);
@@ -491,15 +492,90 @@ export default function ReportPage() {
           </label>
           <textarea
             name="content"
-            rows={6}
+            rows={5}
             value={formData.content}
             onChange={handleChange}
-            placeholder="실시된 교육 내용을 작성해 주세요."
+            placeholder="실시된 교육 내용 및 진행 사항을 작성해 주세요."
             required
           />
         </div>
 
-        {/* 4. 현장 사진 첨부 (옵션) */}
+        {/* 4. 총평 및 개선의견 (선택 사항 - 인증평가 PDCA 대비) */}
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
+            <label style={{ fontSize: 13, fontWeight: 700 }}>
+              총평 및 개선의견 <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-sub)' }}>(선택 사항 · 4주기 인증평가 환류 증빙)</span>
+            </label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '직원들의 교육 참여도 및 이해도가 우수하였으며, 관련 업무 수행 시 전달된 수칙을 철저히 준수하도록 지속 모니터링할 예정임.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#EBF5FB',
+                  color: '#2980B9',
+                  border: '1px solid #AED6F1',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 일반/법정교육 문구
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '실습 참여도는 양호하였으나 취약시간대 대응 동선 및 임무 숙지 보완 필요성이 확인됨 → 부서별 대응 매뉴얼 재공지 및 정기 점검 실시 예정.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#FDEDEC',
+                  color: '#C0392B',
+                  border: '1px solid #FADBD8',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 소방/CPR 실습 문구
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '원내 감염예방 및 안전 관리 기본 수칙 교육 완료. 부서별 준수율 모니터링을 강화하고 필요 시 1:1 현장 피드백을 진행하기로 함.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#EAFAF1',
+                  color: '#27AE60',
+                  border: '1px solid #A9DFBF',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 감염/환자안전 문구
+              </button>
+            </div>
+          </div>
+          <textarea
+            name="evaluation"
+            rows={3}
+            value={formData.evaluation}
+            onChange={handleChange}
+            placeholder="교육 총평, 미흡했던 점 및 향후 개선/환류 조치 계획을 자유롭게 입력하세요. (상단 추천 문구를 클릭하셔도 됩니다)"
+          />
+        </div>
+
+        {/* 5. 현장 사진 첨부 (옵션) */}
         <div style={{ marginBottom: 28 }}>
           <label style={{ display: 'block', fontSize: 13, fontWeight: 700, marginBottom: 6 }}>
             교육 현장 사진 (선택 사항)

@@ -33,6 +33,12 @@ export async function POST(request) {
       }
     }
 
+    // 교육 내용 및 총평/개선의견 합성
+    let fullContent = data.content || '';
+    if (data.evaluation && data.evaluation.trim()) {
+      fullContent = `${fullContent}\n\n[총평 및 개선의견]\n${data.evaluation.trim()}`;
+    }
+
     // 치환할 태그 맵
     const replacements = {
       '{{부서}}': data.department || '',
@@ -49,7 +55,10 @@ export async function POST(request) {
       '{{교육금액}}': data.budget || '0원',
       '{{주관부서}}': data.hostDept || '',
       '{{교육강사}}': data.instructor || '',
-      '{{교육내용}}': data.content || '',
+      '{{교육내용}}': fullContent,
+      '{{총평}}': data.evaluation || '',
+      '{{개선의견}}': data.evaluation || '',
+      '{{총평및개선의견}}': data.evaluation || '',
       '{{교육사진}}': photoUrl ? `[현장 사진 링크: ${photoUrl}]` : '사진 없음',
     };
 
