@@ -504,7 +504,7 @@ export default function ReportPage() {
         <div style={{ marginBottom: 24 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
             <label style={{ fontSize: 13, fontWeight: 700 }}>
-              총평 및 개선의견 <span style={{ fontSize: 12, fontWeight: 500, color: 'var(--text-sub)' }}>(선택 사항 · 4주기 인증평가 환류 증빙)</span>
+              총평 및 개선의견
             </label>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
               <button
