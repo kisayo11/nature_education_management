@@ -72,29 +72,6 @@ export async function createDocumentFromTemplate({
     }
   }
 
-  // 5. 병원 공식 로고 삽입 (계획서 및 보고서 상단)
-  try {
-    const logoUri = 'https://drive.google.com/thumbnail?id=1ucXzGQcDpM_dBHf3vyj9H4bvs5AI57wd&sz=w600';
-    await docs.documents.batchUpdate({
-      documentId: newDocId,
-      requestBody: {
-        requests: [
-          {
-            insertInlineImage: {
-              uri: logoUri,
-              location: { index: 1 },
-              objectSize: {
-                width: { magnitude: 110, unit: 'PT' },
-                height: { magnitude: 32, unit: 'PT' },
-              },
-            },
-          },
-        ],
-      },
-    });
-  } catch (logoErr) {
-    console.warn('병원 로고 삽입 중 알림 (계속 진행):', logoErr.message);
-  }
 
   return {
     docId: newDocId,
