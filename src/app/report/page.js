@@ -502,16 +502,40 @@ export default function ReportPage() {
 
         {/* 4. 총평 및 개선의견 (선택 사항 - 인증평가 PDCA 대비) */}
         <div style={{ marginBottom: 24 }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, flexWrap: 'wrap', gap: 6 }}>
-            <label style={{ fontSize: 13, fontWeight: 700 }}>
-              총평 및 개선의견
-            </label>
-            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 8, flexWrap: 'wrap', gap: 8 }}>
+            <div>
+              <label style={{ fontSize: 13, fontWeight: 700, display: 'block' }}>
+                총평 및 개선의견
+              </label>
+              <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
+                원하는 교육 유형을 클릭하면 맞춤 문구가 자동 입력됩니다.
+              </span>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', maxWidth: 680 }}>
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({
                   ...prev,
-                  evaluation: '직원들의 교육 참여도 및 이해도가 우수하였으며, 관련 업무 수행 시 전달된 수칙을 철저히 준수하도록 지속 모니터링할 예정임.'
+                  evaluation: '[총평] 4주기 의료기관 인증 기준에 따른 22개 필수 영역(환자안전문화, 감염·다제내성균, 화재소방, 환자권리, 질향상 등) 전반에 걸쳐 원내 규정과 현장 실무 지침 교육을 전 직원 대상으로 체계적으로 완료함.\n[개선의견] 온라인 이수에 머무르지 않고 낙상·신체보호대 관리, 손위생 수행률, 화재 대피 동선 등 핵심 지표가 임상 현장에서 실질적으로 준수되는지 부서별 자체 모니터링을 상시화하고 미비점은 지속 개선하겠음.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#F4ECF7',
+                  color: '#8E44AD',
+                  border: '1px solid #D2B4DE',
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                }}
+              >
+                ★ 4주기 인증필수(22개)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '[총평] 전 직원의 기본 법령 준수 의식 및 직장 내 상호존중 문화를 제고함.\n[개선의견] 미이수자(휴직·교대근무자) 대상 추가 보수교육을 독려하여 이수율 100%를 달성하겠음.'
                 }))}
                 style={{
                   fontSize: 11,
@@ -524,32 +548,51 @@ export default function ReportPage() {
                   fontWeight: 600,
                 }}
               >
-                + 일반/법정교육 문구
+                + 법정교육
               </button>
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({
                   ...prev,
-                  evaluation: '실습 참여도는 양호하였으나 취약시간대 대응 동선 및 임무 숙지 보완 필요성이 확인됨 → 부서별 대응 매뉴얼 재공지 및 정기 점검 실시 예정.'
+                  evaluation: '[총평] 원내 유해요인 인지 및 부서별 안전보건 작업수칙 숙지 상태는 양호함.\n[개선의견] 환자 이송 및 조리·시설 작업 시 보호구 착용 상태를 불시 점검하고 근골격계 부담 작업을 현장 지도하겠음.'
                 }))}
                 style={{
                   fontSize: 11,
                   padding: '3px 8px',
                   borderRadius: 4,
-                  backgroundColor: '#FDEDEC',
-                  color: '#C0392B',
-                  border: '1px solid #FADBD8',
+                  backgroundColor: '#FBEEE6',
+                  color: '#D35400',
+                  border: '1px solid #EDBB99',
                   cursor: 'pointer',
                   fontWeight: 600,
                 }}
               >
-                + 소방/CPR 실습 문구
+                + 산업안전보건
               </button>
               <button
                 type="button"
                 onClick={() => setFormData(prev => ({
                   ...prev,
-                  evaluation: '원내 감염예방 및 안전 관리 기본 수칙 교육 완료. 부서별 준수율 모니터링을 강화하고 필요 시 1:1 현장 피드백을 진행하기로 함.'
+                  evaluation: '[총평] 정확한 환자확인 절차 및 낙상·욕창 고위험군 관리 지침을 숙지함.\n[개선의견] 야간 취약시간대 병동 라운딩을 강화하고 침상 난간 체결 등 낙상 예방활동 지표를 지속 모니터링하겠음.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#E8F8F5',
+                  color: '#16A085',
+                  border: '1px solid #A3E4D7',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 환자안전
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '[총평] 표준주의 지침 및 손위생, 격리환자 관리 기본 수칙 숙지 상태를 확인함.\n[개선의견] 분기별 손위생 수행률 모니터링을 지속하고 격리병실 보호구 비치 및 환경소독 상태를 불시 점검하겠음.'
                 }))}
                 style={{
                   fontSize: 11,
@@ -562,16 +605,54 @@ export default function ReportPage() {
                   fontWeight: 600,
                 }}
               >
-                + 감염/환자안전 문구
+                + 감염관리
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '[총평] 흉부압박 기본 수기 및 자동심장충격기(AED) 사용법 실습을 원활히 마침.\n[개선의견] 최초 발견자의 신속한 코드블루 전파 및 병동별 응급카트 물품 완비 상태를 주기적으로 재확인하겠음.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#FDEDEC',
+                  color: '#C0392B',
+                  border: '1px solid #FADBD8',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 심폐소생술(CPR)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFormData(prev => ({
+                  ...prev,
+                  evaluation: '[총평] 소화설비 작동법 및 자위소방대 편성 임무(초기진화/통보/피난)를 확인함.\n[개선의견] 거동불가 환자 특성을 반영하여 병동별 피난유도 동선을 재정비하고 방화문 물품 적치를 상시 단속하겠음.'
+                }))}
+                style={{
+                  fontSize: 11,
+                  padding: '3px 8px',
+                  borderRadius: 4,
+                  backgroundColor: '#FEF9E7',
+                  color: '#B7950B',
+                  border: '1px solid #F9E79F',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                }}
+              >
+                + 소방교육
               </button>
             </div>
           </div>
           <textarea
             name="evaluation"
-            rows={3}
+            rows={4}
             value={formData.evaluation}
             onChange={handleChange}
-            placeholder="교육 총평, 미흡했던 점 및 향후 개선/환류 조치 계획을 자유롭게 입력하세요. (상단 추천 문구를 클릭하셔도 됩니다)"
+            placeholder="교육 총평 및 개선/환류 조치 계획을 자유롭게 입력하거나 상단의 교육별 추천 버튼을 클릭하세요."
           />
         </div>
 
