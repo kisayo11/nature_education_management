@@ -2,18 +2,19 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FilePenLine, FileText, CheckSquare, Search, ClipboardList } from 'lucide-react';
+import { FilePenLine, FileText, CheckSquare, Search, ClipboardList, Award } from 'lucide-react';
 
 export default function Navbar() {
   const pathname = usePathname();
 
   const isSignPage = pathname === '/';
-  const isAdminDocPage = pathname === '/plan' || pathname === '/report' || pathname === '/non-attendees' || pathname === '/archive';
+  const isAdminDocPage = pathname === '/plan' || pathname === '/report' || pathname === '/non-attendees' || pathname === '/archive' || pathname === '/certificate';
 
   const adminItems = [
     { href: '/plan', label: '계획서 작성', icon: FilePenLine },
     { href: '/report', label: '보고서 작성', icon: FileText },
     { href: '/non-attendees', label: '미이수자 관리대장', icon: ClipboardList },
+    { href: '/certificate', label: '신규 수료증', icon: Award },
     { href: '/archive', label: '문서 조회', icon: Search },
   ];
 
