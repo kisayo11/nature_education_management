@@ -49,7 +49,7 @@ export function generateCertNumber(date) {
 }
 
 /**
- * 수료증 1장 PDF 생성 함수
+ * 수료증 1장 PDF 생성 함수 (NotoSansKR 규격 및 소속 겹침 제거)
  * @param {Object} params
  * @param {'safety' | 'preplacement'} params.type
  * @param {string} params.name
@@ -86,12 +86,12 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  // 폰트 로드
+  // NotoSansKR 폰트 로드 (하이픈 벌어짐 없는 최적 폰트)
   const fontDir = path.join(process.cwd(), 'public/fonts');
-  const regFontBytes = fs.readFileSync(path.join(fontDir, 'Pretendard-Regular.ttf'));
-  const boldFontBytes = fs.readFileSync(path.join(fontDir, 'Pretendard-Bold.ttf'));
-  const fontRegular = await pdfDoc.embedFont(regFontBytes);
+  const boldFontBytes = fs.readFileSync(path.join(fontDir, 'NotoSansKR-Bold.ttf'));
+  const semiBoldFontBytes = fs.readFileSync(path.join(fontDir, 'NotoSansKR-SemiBold.ttf'));
   const fontBold = await pdfDoc.embedFont(boldFontBytes);
+  const fontRegular = await pdfDoc.embedFont(semiBoldFontBytes);
 
   // 배경 템플릿 로드
   const templateDir = path.join(process.cwd(), 'public/templates');
@@ -112,76 +112,69 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
   });
 
   const textColor = rgb(0.12, 0.12, 0.12);
-  const valueX = 185; // 라벨 뒤 시작 X 좌표 (균형 잡힌 여백)
+  const valueX = 174.1; // 구글 슬라이드 템플릿 정확한 시작 X 좌표
 
-  // 1. 수료번호 (상단)
+  // 1. 수료번호 (상단 박스 내부, 슬라이드 기준 y=762.9)
   page.drawText(finalCertNo, {
-    x: 123.5,
-    y: pageHeight - 79.5,
-    size: 11.9,
+    x: 115.5,
+    y: pageHeight - 79.0,
+    size: 12.0,
     font: fontRegular,
     color: textColor,
   });
 
-  // 2. 성명
+  // 2. 이름 (슬라이드 기준 y=619.9)
   page.drawText(name, {
     x: valueX,
-    y: pageHeight - 221.5,
-    size: 12.6,
-    font: fontRegular,
+    y: pageHeight - 222.0,
+    size: 13.5,
+    font: fontBold,
     color: textColor,
   });
 
-  // 3. 생년월일
+  // 3. 생년월일 (슬라이드 기준 y=584.9)
   page.drawText(birthText, {
     x: valueX,
-    y: pageHeight - 256.3,
-    size: 12.6,
-    font: fontRegular,
+    y: pageHeight - 257.0,
+    size: 13.5,
+    font: fontBold,
     color: textColor,
   });
 
-  // 4. 소속
-  page.drawText('네이처요양병원', {
-    x: valueX,
-    y: pageHeight - 290.5,
-    size: 12.6,
-    font: fontRegular,
-    color: textColor,
-  });
+  // ※ 소속 기관: 배경 이미지에 이미 '네이처요양병원'이 인쇄되어 있으므로 덧그리지 않음(겹침 방지)
 
-  // 5. 훈련과정명
+  // 4. 훈련과정 (슬라이드 기준 y=516.4)
   page.drawText(courseTitle, {
     x: valueX,
-    y: pageHeight - 325.3,
-    size: 12.6,
-    font: fontRegular,
+    y: pageHeight - 325.5,
+    size: 13.5,
+    font: fontBold,
     color: textColor,
   });
 
-  // 6. 훈련기간
+  // 5. 훈련기간 (슬라이드 기준 y=481.4)
   page.drawText(periodText, {
     x: valueX,
-    y: pageHeight - 360.2,
-    size: 12.6,
-    font: fontRegular,
+    y: pageHeight - 360.5,
+    size: 13.5,
+    font: fontBold,
     color: textColor,
   });
 
-  // 7. 수료일
+  // 6. 수료일 (슬라이드 기준 y=446.4)
   page.drawText(completionDateText, {
     x: valueX,
-    y: pageHeight - 395.1,
-    size: 12.6,
-    font: fontRegular,
+    y: pageHeight - 395.5,
+    size: 13.5,
+    font: fontBold,
     color: textColor,
   });
 
-  // 8. 발급일 (하단 가운데 정렬)
+  // 7. 발급일자 (슬라이드 기준 y=210.9, 가운데 정렬)
   const dateWidth = fontBold.widthOfTextAtSize(issueDateKorean, 15.8);
   page.drawText(issueDateKorean, {
     x: (pageWidth - dateWidth) / 2,
-    y: pageHeight - 634.0,
+    y: pageHeight - 631.0,
     size: 15.8,
     font: fontBold,
     color: textColor,
