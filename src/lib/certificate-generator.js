@@ -49,7 +49,36 @@ export function generateCertNumber(date) {
 }
 
 /**
- * 수료증 1장 PDF 생성 함수 (NotoSansKR 규격 및 소속 겹침 제거)
+ * 한글 전각 공백 벌어짐을 방지하고 정상 1칸 공백(약 4.5pt)으로 인쇄하는 헬퍼 함수
+ */
+function drawTextWithNormalSpace(page, text, startX, y, size, font, color, spaceWidth = 4.5) {
+  const words = String(text).split(' ');
+  let currentX = startX;
+  for (let i = 0; i < words.length; i++) {
+    const word = words[i];
+    if (word) {
+      page.drawText(word, { x: currentX, y, size, font, color });
+      currentX += font.widthOfTextAtSize(word, size);
+    }
+    if (i < words.length - 1) {
+      currentX += spaceWidth;
+    }
+  }
+  return currentX - startX; // 총 렌더링 너비 반환
+}
+
+function measureTextWithNormalSpace(text, size, font, spaceWidth = 4.5) {
+  const words = String(text).split(' ');
+  let width = 0;
+  for (let i = 0; i < words.length; i++) {
+    if (words[i]) width += font.widthOfTextAtSize(words[i], size);
+    if (i < words.length - 1) width += spaceWidth;
+  }
+  return width;
+}
+
+/**
+ * 수료증 1장 PDF 생성 함수 (NotoSansKR 단정 1칸 공백 및 소속 겹침 제거)
  * @param {Object} params
  * @param {'safety' | 'preplacement'} params.type
  * @param {string} params.name
@@ -86,7 +115,7 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
   const pdfDoc = await PDFDocument.create();
   pdfDoc.registerFontkit(fontkit);
 
-  // NotoSansKR 폰트 로드 (하이픈 벌어짐 없는 최적 폰트)
+  // NotoSansKR 폰트 로드
   const fontDir = path.join(process.cwd(), 'public/fonts');
   const boldFontBytes = fs.readFileSync(path.join(fontDir, 'NotoSansKR-Bold.ttf'));
   const semiBoldFontBytes = fs.readFileSync(path.join(fontDir, 'NotoSansKR-SemiBold.ttf'));
@@ -112,16 +141,10 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
   });
 
   const textColor = rgb(0.12, 0.12, 0.12);
-  const valueX = 174.1; // 구글 슬라이드 템플릿 정확한 시작 X 좌표
+  const valueX = 174.1; // 슬라이드 템플릿 기준 정확한 시작 X 좌표
 
   // 1. 수료번호 (상단 박스 내부, 슬라이드 기준 y=762.9)
-  page.drawText(finalCertNo, {
-    x: 115.5,
-    y: pageHeight - 79.0,
-    size: 12.0,
-    font: fontRegular,
-    color: textColor,
-  });
+  drawTextWithNormalSpace(page, finalCertNo, 115.5, pageHeight - 79.0, 12.0, fontRegular, textColor, 4.0);
 
   // 2. 이름 (슬라이드 기준 y=619.9)
   page.drawText(name, {
@@ -132,34 +155,16 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
     color: textColor,
   });
 
-  // 3. 생년월일 (슬라이드 기준 y=584.9)
-  page.drawText(birthText, {
-    x: valueX,
-    y: pageHeight - 257.0,
-    size: 13.5,
-    font: fontBold,
-    color: textColor,
-  });
+  // 3. 생년월일 (슬라이드 기준 y=584.9, 단정한 1칸 공백 적용)
+  drawTextWithNormalSpace(page, birthText, valueX, pageHeight - 257.0, 13.5, fontBold, textColor, 4.5);
 
   // ※ 소속 기관: 배경 이미지에 이미 '네이처요양병원'이 인쇄되어 있으므로 덧그리지 않음(겹침 방지)
 
-  // 4. 훈련과정 (슬라이드 기준 y=516.4)
-  page.drawText(courseTitle, {
-    x: valueX,
-    y: pageHeight - 325.5,
-    size: 13.5,
-    font: fontBold,
-    color: textColor,
-  });
+  // 4. 훈련과정 (슬라이드 기준 y=516.4, '자'와 '산' 사이 정상 1칸 공백 적용)
+  drawTextWithNormalSpace(page, courseTitle, valueX, pageHeight - 325.5, 13.5, fontBold, textColor, 4.5);
 
   // 5. 훈련기간 (슬라이드 기준 y=481.4)
-  page.drawText(periodText, {
-    x: valueX,
-    y: pageHeight - 360.5,
-    size: 13.5,
-    font: fontBold,
-    color: textColor,
-  });
+  drawTextWithNormalSpace(page, periodText, valueX, pageHeight - 360.5, 13.5, fontBold, textColor, 4.5);
 
   // 6. 수료일 (슬라이드 기준 y=446.4)
   page.drawText(completionDateText, {
@@ -170,15 +175,9 @@ export async function generateCertificatePdf({ type, name, birth, joinDate, cert
     color: textColor,
   });
 
-  // 7. 발급일자 (슬라이드 기준 y=210.9, 가운데 정렬)
-  const dateWidth = fontBold.widthOfTextAtSize(issueDateKorean, 15.8);
-  page.drawText(issueDateKorean, {
-    x: (pageWidth - dateWidth) / 2,
-    y: pageHeight - 631.0,
-    size: 15.8,
-    font: fontBold,
-    color: textColor,
-  });
+  // 7. 발급일자 (슬라이드 기준 y=210.9, 가운데 정렬, 단정한 1칸 공백)
+  const dateWidth = measureTextWithNormalSpace(issueDateKorean, 15.8, fontBold, 5.0);
+  drawTextWithNormalSpace(page, issueDateKorean, (pageWidth - dateWidth) / 2, pageHeight - 631.0, 15.8, fontBold, textColor, 5.0);
 
   const pdfBytes = await pdfDoc.save();
   return {
