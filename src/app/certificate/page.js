@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import AdminGuard from '@/components/AdminGuard';
+import { useAdminAuth } from '@/lib/useAdminAuth';
 import {
   Award,
   Search,
@@ -20,6 +22,7 @@ import {
 } from 'lucide-react';
 
 export default function CertificatePage() {
+  const { isLoggedIn } = useAdminAuth();
   const [list, setList] = useState([]);
   const [stats, setStats] = useState({ total: 0, complete: 0, partial: 0, pending: 0 });
   const [unsyncedList, setUnsyncedList] = useState([]);
@@ -57,8 +60,10 @@ export default function CertificatePage() {
   };
 
   useEffect(() => {
-    fetchList();
-  }, []);
+    if (isLoggedIn) {
+      fetchList();
+    }
+  }, [isLoggedIn]);
 
   // 재직자 명부에서 신규 입사자 동기화
   const handleSyncRoster = async () => {
@@ -163,6 +168,7 @@ export default function CertificatePage() {
   };
 
   return (
+    <AdminGuard title="신규 수료증 발급 및 관리">
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px 16px' }}>
       {/* 헤더 타이틀 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 16 }}>
@@ -670,5 +676,6 @@ export default function CertificatePage() {
         }
       `}</style>
     </div>
+    </AdminGuard>
   );
 }

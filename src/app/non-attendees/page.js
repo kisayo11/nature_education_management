@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import AdminGuard from '@/components/AdminGuard';
+import { useAdminAuth } from '@/lib/useAdminAuth';
 import Link from 'next/link';
 import {
   Users,
@@ -19,6 +21,7 @@ import {
 } from 'lucide-react';
 
 export default function NonAttendeesPage() {
+  const { isLoggedIn } = useAdminAuth();
   const currentYear = new Date().getFullYear().toString();
   const [year, setYear] = useState(currentYear);
   const [trainingName, setTrainingName] = useState('');
@@ -46,6 +49,7 @@ export default function NonAttendeesPage() {
 
   // 교육 목록 로드
   useEffect(() => {
+    if (!isLoggedIn) return;
     const fetchTrainings = async () => {
       try {
         const res = await fetch('/api/archive?type=signatures');
@@ -62,7 +66,7 @@ export default function NonAttendeesPage() {
       }
     };
     fetchTrainings();
-  }, []);
+  }, [isLoggedIn]);
 
   // 교육 선택 변경 시 교육명 자동 세팅
   const handleTrainingSelect = (e) => {
@@ -236,6 +240,7 @@ export default function NonAttendeesPage() {
   };
 
   return (
+    <AdminGuard title="미이수자 관리대장 관리">
     <div style={{ maxWidth: 960, margin: '0 auto', padding: '24px 16px 80px' }}>
       {/* 상단 타이틀 & 결재 문서 안내 배너 */}
       <div style={{ marginBottom: 24 }}>
@@ -734,5 +739,6 @@ export default function NonAttendeesPage() {
         </button>
       </form>
     </div>
+    </AdminGuard>
   );
 }
