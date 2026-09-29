@@ -18,7 +18,13 @@ import {
   Users,
   Check,
   ChevronRight,
+  ChevronLeft,
+  ChevronsLeft,
+  ChevronsRight,
   ShieldAlert,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 
 export default function CertificatePage() {
@@ -34,6 +40,14 @@ export default function CertificatePage() {
   // 필터 및 검색
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all'); // all | pending | complete
+
+  // 정렬 상태
+  const [sortField, setSortField] = useState('no'); // default by no
+  const [sortOrder, setSortOrder] = useState('asc'); // asc | desc
+
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
 
   // 선택된 항목 (rowIndex 기준)
   const [selectedRows, setSelectedRows] = useState([]);
@@ -128,6 +142,11 @@ export default function CertificatePage() {
     }
   };
 
+  // 검색어/필터 변경 시 1페이지로 리셋
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchQuery, statusFilter]);
+
   // 필터링된 목록
   const filteredList = useMemo(() => {
     return list.filter((item) => {
@@ -151,6 +170,103 @@ export default function CertificatePage() {
     });
   }, [list, searchQuery, statusFilter]);
 
+  // 정렬된 목록
+  const sortedList = useMemo(() => {
+    if (!sortField) return filteredList;
+
+    return [...filteredList].sort((a, b) => {
+      let aVal = a[sortField];
+      let bVal = b[sortField];
+
+      if (aVal === undefined || aVal === null) aVal = '';
+      if (bVal === undefined || bVal === null) bVal = '';
+
+      // boolean 비교 (safetyDone, onboardDone)
+      if (typeof aVal === 'boolean') {
+        return sortOrder === 'asc'
+          ? (aVal === bVal ? 0 : aVal ? 1 : -1)
+          : (aVal === bVal ? 0 : aVal ? -1 : 1);
+      }
+
+      // 숫자 비교 (no 등)
+      const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
+      const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
+      if (!isNaN(aNum) && !isNaN(bNum) && String(aVal).trim().match(/^\d+$/)) {
+        return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+      }
+
+      // 문자열 / 날짜 비교
+      const cmp = String(aVal).localeCompare(String(bVal), 'ko');
+      return sortOrder === 'asc' ? cmp : -cmp;
+    });
+  }, [filteredList, sortField, sortOrder]);
+
+  // 페이지네이션 슬라이스
+  const totalPages = Math.ceil(sortedList.length / pageSize) || 1;
+  const paginatedList = useMemo(() => {
+    const start = (currentPage - 1) * pageSize;
+    return sortedList.slice(start, start + pageSize);
+  }, [sortedList, currentPage, pageSize]);
+
+  // 헤더 정렬 클릭 핸들러
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder(field === 'joinDate' || field === 'birth' ? 'desc' : 'asc');
+    }
+    setCurrentPage(1);
+  };
+
+  const getPageNumbers = () => {
+    const maxButtons = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
+  const renderSortHeader = (field, label, width, align = 'left') => {
+    const isActive = sortField === field;
+    return (
+      <th
+        onClick={() => handleSort(field)}
+        style={{
+          padding: '12px 14px',
+          width: width || 'auto',
+          cursor: 'pointer',
+          userSelect: 'none',
+          textAlign: align,
+          transition: 'background-color 0.15s ease',
+        }}
+        title={`${label} 클릭 시 오름차순/내림차순 정렬`}
+      >
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          justifyContent: align === 'center' ? 'center' : 'flex-start',
+        }}>
+          <span>{label}</span>
+          <span style={{ display: 'inline-flex', opacity: isActive ? 1 : 0.35, color: isActive ? 'var(--primary)' : 'inherit' }}>
+            {isActive ? (
+              sortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
+            ) : (
+              <ArrowUpDown size={12} />
+            )}
+          </span>
+        </div>
+      </th>
+    );
+  };
+
   // 체크박스 선택 토글
   const toggleSelectRow = (rowIndex) => {
     setSelectedRows((prev) =>
@@ -158,13 +274,28 @@ export default function CertificatePage() {
     );
   };
 
-  // 전체 선택 토글
-  const toggleSelectAll = () => {
-    if (selectedRows.length === filteredList.length) {
-      setSelectedRows([]);
+  // 현재 페이지 전체 선택 여부
+  const isPageAllSelected =
+    paginatedList.length > 0 && paginatedList.every((item) => selectedRows.includes(item.rowIndex));
+
+  // 현재 페이지 전체 선택/해제 토글
+  const toggleSelectPage = () => {
+    const pageIndices = paginatedList.map((item) => item.rowIndex);
+    if (isPageAllSelected) {
+      setSelectedRows((prev) => prev.filter((idx) => !pageIndices.includes(idx)));
     } else {
-      setSelectedRows(filteredList.map((item) => item.rowIndex));
+      setSelectedRows((prev) => Array.from(new Set([...prev, ...pageIndices])));
     }
+  };
+
+  // 검색/필터 결과 전체 선택
+  const selectAllFiltered = () => {
+    setSelectedRows(sortedList.map((item) => item.rowIndex));
+  };
+
+  // 선택 초기화
+  const deselectAll = () => {
+    setSelectedRows([]);
   };
 
   return (
@@ -390,8 +521,46 @@ export default function CertificatePage() {
           </div>
         </div>
 
-        {/* 우측: 일괄 발급 버튼 */}
-        <div>
+        {/* 우측: 선택 관리 및 일괄 발급 버튼 */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          {selectedRows.length > 0 && (
+            <>
+              {selectedRows.length < sortedList.length && (
+                <button
+                  type="button"
+                  onClick={selectAllFiltered}
+                  style={{
+                    padding: '6px 11px',
+                    fontSize: 12,
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    color: 'var(--primary)',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                  }}
+                >
+                  전체 {sortedList.length}명 선택
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={deselectAll}
+                style={{
+                  padding: '6px 11px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  border: '1px solid var(--input-border)',
+                  backgroundColor: '#fff',
+                  color: 'var(--text-sub)',
+                  cursor: 'pointer',
+                }}
+              >
+                선택 해제
+              </button>
+            </>
+          )}
+
           <button
             onClick={() => {
               const targets = list.filter((item) => selectedRows.includes(item.rowIndex));
@@ -485,25 +654,18 @@ export default function CertificatePage() {
                 <th style={{ padding: '12px 14px', width: 44, textAlign: 'center' }}>
                   <input
                     type="checkbox"
-                    checked={filteredList.length > 0 && selectedRows.length === filteredList.length}
-                    onChange={toggleSelectAll}
+                    checked={isPageAllSelected}
+                    onChange={toggleSelectPage}
                     style={{ cursor: 'pointer', width: 16, height: 16 }}
+                    title={isPageAllSelected ? '현재 페이지 선택 해제' : '현재 페이지 전체 선택'}
                   />
                 </th>
-                <th style={{ padding: '12px 10px', width: 50, textAlign: 'center' }}>번호</th>
-                <th style={{ padding: '12px 14px', width: 90 }}>이름</th>
-                <th style={{ padding: '12px 14px', width: 110 }}>입사일</th>
-                <th style={{ padding: '12px 14px', width: 140 }}>생년월일</th>
-                <th style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>🛡️ 산업안전보건교육 (8h)</span>
-                  </div>
-                </th>
-                <th style={{ padding: '12px 16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                    <span>🏥 요양병원 배치전교육 (15h)</span>
-                  </div>
-                </th>
+                {renderSortHeader('no', '번호', 55, 'center')}
+                {renderSortHeader('name', '이름', 90)}
+                {renderSortHeader('joinDate', '입사일', 110)}
+                {renderSortHeader('birth', '생년월일', 130)}
+                {renderSortHeader('safetyDone', '🛡️ 산업안전보건교육 (8h)')}
+                {renderSortHeader('onboardDone', '🏥 요양병원 배치전교육 (15h)')}
                 <th style={{ padding: '12px 14px', width: 110, textAlign: 'center' }}>발급 관리</th>
               </tr>
             </thead>
@@ -515,14 +677,14 @@ export default function CertificatePage() {
                     신규입사자 명단을 불러오고 있습니다...
                   </td>
                 </tr>
-              ) : filteredList.length === 0 ? (
+              ) : paginatedList.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ padding: 60, textAlign: 'center', color: 'var(--text-sub)' }}>
                     조회된 입사자 명단이 없습니다.
                   </td>
                 </tr>
               ) : (
-                filteredList.map((item) => {
+                paginatedList.map((item) => {
                   const isSelected = selectedRows.includes(item.rowIndex);
                   const isComplete = item.status === 'complete';
 
@@ -656,6 +818,150 @@ export default function CertificatePage() {
             </tbody>
           </table>
         </div>
+
+        {/* 페이지네이션 및 표시 건수 선택 바 */}
+        {!isLoading && sortedList.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 18px',
+            backgroundColor: '#F8FAF9',
+            borderTop: '1px solid var(--input-border)',
+            flexWrap: 'wrap',
+            gap: 12,
+            fontSize: 13,
+            color: 'var(--text-sub)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>
+                총 <strong>{sortedList.length}</strong>명 중{' '}
+                <strong>{(currentPage - 1) * pageSize + 1}</strong> -{' '}
+                <strong>{Math.min(currentPage * pageSize, sortedList.length)}</strong>명 표시
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  borderColor: 'var(--input-border)',
+                  backgroundColor: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value={10}>10명씩 보기</option>
+                <option value={15}>15명씩 보기</option>
+                <option value={20}>20명씩 보기</option>
+                <option value={50}>50명씩 보기</option>
+              </select>
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === 1 ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="처음 페이지"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === 1 ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="이전 페이지"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                {getPageNumbers().map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setCurrentPage(num)}
+                    style={{
+                      minWidth: 30,
+                      height: 30,
+                      padding: '0 6px',
+                      borderRadius: 6,
+                      border: num === currentPage ? 'none' : '1px solid var(--input-border)',
+                      backgroundColor: num === currentPage ? 'var(--primary)' : '#fff',
+                      color: num === currentPage ? '#fff' : 'var(--text-main)',
+                      fontWeight: num === currentPage ? 700 : 500,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                    }}
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === totalPages ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="다음 페이지"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === totalPages ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="마지막 페이지"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <style jsx global>{`
