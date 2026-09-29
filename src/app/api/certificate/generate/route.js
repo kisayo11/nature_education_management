@@ -73,7 +73,8 @@ export async function POST(request) {
           certNo: safetyCertNo,
         });
 
-        const safetyFileName = `${name}_신규채용자_산업안전보건교육_수료증.pdf`;
+        const safetyDateStr = (safetyResult.finishDate || '').replace(/[^0-9]/g, '');
+        const safetyFileName = `수료증_산업안전_${name}_${safetyDateStr}.pdf`;
         const safetyUpload = await uploadPdfToDrive(drive, safetyFileName, safetyResult.pdfBytes);
 
         // 2. 요양병원 신규직원 배치전교육 (15시간) PDF 생성 및 업로드
@@ -85,7 +86,8 @@ export async function POST(request) {
           certNo: onboardCertNo,
         });
 
-        const onboardFileName = `${name}_요양병원_신규직원_배치전교육_수료증.pdf`;
+        const onboardDateStr = (onboardResult.finishDate || '').replace(/[^0-9]/g, '');
+        const onboardFileName = `수료증_배치전교육_${name}_${onboardDateStr}.pdf`;
         const onboardUpload = await uploadPdfToDrive(drive, onboardFileName, onboardResult.pdfBytes);
 
         // 3. 구글 시트1 해당 행 업데이트 (F열~I열)
