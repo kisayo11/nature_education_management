@@ -18,13 +18,33 @@ import {
   X,
   TrendingUp,
   ClipboardList,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  AlertTriangle,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
 } from 'lucide-react';
 
 export default function ArchivePage() {
-  const [activeTab, setActiveTab] = useState('plans'); // plans | reports | signatures
+  const [activeTab, setActiveTab] = useState('plans'); // plans | reports | signatures | ledgers
   const [searchQuery, setSearchQuery] = useState('');
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(false);
+
+  // 정렬 상태
+  const [sortField, setSortField] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc'); // 'asc' | 'desc'
+
+  // 페이지네이션 상태
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  // 계획서 탭 전용 보고서 작성 여부 필터 ('all' | 'unreported' | 'reported')
+  const [planReportFilter, setPlanReportFilter] = useState('all');
 
   // 서명부 조회용 교육 목록 및 선택된 교육
   const [trainings, setTrainings] = useState([]);
@@ -167,10 +187,120 @@ export default function ArchivePage() {
     setTimeout(() => setCopiedNotice(false), 2500);
   };
 
+  // 탭 변경 핸들러
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setItems([]);
+    setSortField('');
+    setPlanReportFilter('all');
+    setCurrentPage(1);
+  };
+
   // 검색 엔터 또는 실행
   const handleSearch = (e) => {
     e.preventDefault();
+    setCurrentPage(1);
     loadData();
+  };
+
+  // 계획서 탭 전용 보고서 통계
+  const planItems = activeTab === 'plans' ? items : [];
+  const unreportedCount = planItems.filter((p) => !p.hasReport).length;
+  const reportedCount = planItems.filter((p) => p.hasReport).length;
+
+  // 1. 계획서 탭일 때 보고서 상태 필터링
+  const filteredByReport = (items || []).filter((item) => {
+    if (activeTab !== 'plans' || planReportFilter === 'all') return true;
+    if (planReportFilter === 'unreported') return !item.hasReport;
+    if (planReportFilter === 'reported') return !!item.hasReport;
+    return true;
+  });
+
+  // 2. 정렬 로직
+  const sortedItems = [...filteredByReport].sort((a, b) => {
+    if (!sortField) return 0;
+    let aVal = a[sortField];
+    let bVal = b[sortField];
+
+    if (aVal === undefined || aVal === null) aVal = '';
+    if (bVal === undefined || bVal === null) bVal = '';
+
+    // boolean 비교 (hasReport)
+    if (typeof aVal === 'boolean') {
+      return sortOrder === 'asc' ? (aVal === bVal ? 0 : aVal ? 1 : -1) : (aVal === bVal ? 0 : aVal ? -1 : 1);
+    }
+
+    // 숫자 비교 (예: '15명', '2026', '5')
+    const aNum = parseFloat(String(aVal).replace(/[^0-9.-]/g, ''));
+    const bNum = parseFloat(String(bVal).replace(/[^0-9.-]/g, ''));
+    if (!isNaN(aNum) && !isNaN(bNum) && String(aVal).trim().match(/^\d+/)) {
+      return sortOrder === 'asc' ? aNum - bNum : bNum - aNum;
+    }
+
+    // 문자열 및 날짜 비교
+    const cmp = String(aVal).localeCompare(String(bVal), 'ko');
+    return sortOrder === 'asc' ? cmp : -cmp;
+  });
+
+  // 3. 페이지네이션 슬라이스
+  const totalPages = Math.ceil(sortedItems.length / pageSize) || 1;
+  const paginatedItems = sortedItems.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortOrder((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortField(field);
+      setSortOrder('desc');
+    }
+    setCurrentPage(1);
+  };
+
+  const getPageNumbers = () => {
+    const maxButtons = 5;
+    let start = Math.max(1, currentPage - Math.floor(maxButtons / 2));
+    let end = Math.min(totalPages, start + maxButtons - 1);
+    if (end - start + 1 < maxButtons) {
+      start = Math.max(1, end - maxButtons + 1);
+    }
+    const pages = [];
+    for (let i = start; i <= end; i++) {
+      pages.push(i);
+    }
+    return pages;
+  };
+
+  const renderSortHeader = (field, label, align = 'left') => {
+    const isActive = sortField === field;
+    return (
+      <th
+        onClick={() => handleSort(field)}
+        style={{
+          padding: '14px 16px',
+          cursor: 'pointer',
+          userSelect: 'none',
+          textAlign: align,
+          transition: 'background-color 0.15s ease',
+        }}
+        title={`${label} 클릭 시 오름차순/내림차순 정렬`}
+      >
+        <div style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 4,
+          justifyContent: align === 'center' ? 'center' : 'flex-start',
+        }}>
+          <span>{label}</span>
+          <span style={{ display: 'inline-flex', opacity: isActive ? 1 : 0.35, color: isActive ? 'var(--primary)' : 'inherit' }}>
+            {isActive ? (
+              sortOrder === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
+            ) : (
+              <ArrowUpDown size={12} />
+            )}
+          </span>
+        </div>
+      </th>
+    );
   };
 
   // 서명부 GDoc 생성
@@ -283,7 +413,7 @@ export default function ArchivePage() {
         flexWrap: 'wrap',
       }}>
         <button
-          onClick={() => { setActiveTab('plans'); setItems([]); }}
+          onClick={() => handleTabChange('plans')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -301,7 +431,7 @@ export default function ArchivePage() {
         </button>
 
         <button
-          onClick={() => { setActiveTab('reports'); setItems([]); }}
+          onClick={() => handleTabChange('reports')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -319,7 +449,7 @@ export default function ArchivePage() {
         </button>
 
         <button
-          onClick={() => { setActiveTab('ledgers'); setItems([]); }}
+          onClick={() => handleTabChange('ledgers')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -337,7 +467,7 @@ export default function ArchivePage() {
         </button>
 
         <button
-          onClick={() => { setActiveTab('signatures'); setItems([]); }}
+          onClick={() => handleTabChange('signatures')}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -408,6 +538,81 @@ export default function ArchivePage() {
           </button>
         </form>
       </div>
+
+      {/* 계획서 탭일 때: 보고서 제출/미작성 빠른 필터 바 */}
+      {activeTab === 'plans' && items.length > 0 && (
+        <div style={{
+          display: 'flex',
+          gap: 8,
+          marginBottom: 16,
+          alignItems: 'center',
+          flexWrap: 'wrap',
+          padding: '10px 14px',
+          backgroundColor: '#F8FAF9',
+          borderRadius: 10,
+          border: '1px solid var(--input-border)',
+        }}>
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)', marginRight: 4 }}>
+            보고서 제출 현황:
+          </span>
+          <button
+            type="button"
+            onClick={() => { setPlanReportFilter('all'); setCurrentPage(1); }}
+            style={{
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: planReportFilter === 'all' ? 700 : 500,
+              backgroundColor: planReportFilter === 'all' ? 'var(--text-main)' : '#fff',
+              color: planReportFilter === 'all' ? '#fff' : 'var(--text-sub)',
+              border: '1px solid var(--input-border)',
+              cursor: 'pointer',
+            }}
+          >
+            전체 계획서 ({items.length}건)
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPlanReportFilter('unreported'); setCurrentPage(1); }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: planReportFilter === 'unreported' ? 700 : 600,
+              backgroundColor: planReportFilter === 'unreported' ? '#FEF3C7' : '#fff',
+              color: planReportFilter === 'unreported' ? '#92400E' : '#B45309',
+              border: planReportFilter === 'unreported' ? '1.5px solid #F59E0B' : '1px solid #FDE68A',
+              cursor: 'pointer',
+            }}
+          >
+            <AlertTriangle size={13} color="#D97706" />
+            보고서 미작성 ({unreportedCount}건)
+          </button>
+          <button
+            type="button"
+            onClick={() => { setPlanReportFilter('reported'); setCurrentPage(1); }}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 5,
+              padding: '6px 12px',
+              borderRadius: 6,
+              fontSize: 12,
+              fontWeight: planReportFilter === 'reported' ? 700 : 500,
+              backgroundColor: planReportFilter === 'reported' ? '#DCFCE7' : '#fff',
+              color: planReportFilter === 'reported' ? '#166534' : 'var(--text-sub)',
+              border: planReportFilter === 'reported' ? '1.5px solid #22C55E' : '1px solid var(--input-border)',
+              cursor: 'pointer',
+            }}
+          >
+            <CheckCircle2 size={13} color="#16A34A" />
+            보고서 완료 ({reportedCount}건)
+          </button>
+        </div>
+      )}
 
       {/* 서명부 탭일 때: 실시간 이수율(%) 대시보드 & 미이수자 추출 바 */}
       {activeTab === 'signatures' && selectedTraining && (
@@ -572,10 +777,14 @@ export default function ArchivePage() {
             <RefreshCw size={24} style={{ animation: 'spin 1s linear infinite', margin: '0 auto 10px' }} />
             <div>데이터를 불러오는 중...</div>
           </div>
-        ) : items.length === 0 ? (
+        ) : sortedItems.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '60px 0', color: 'var(--text-sub)' }}>
             <p style={{ fontWeight: 600, fontSize: 16 }}>조회된 데이터가 없습니다.</p>
-            <p style={{ fontSize: 13, marginTop: 4 }}>검색어를 변경하거나 새 문서를 작성해 주세요.</p>
+            <p style={{ fontSize: 13, marginTop: 4 }}>
+              {planReportFilter !== 'all'
+                ? '현재 선택한 필터 조건(보고서 미작성/완료)에 해당하는 계획서가 없습니다.'
+                : '검색어를 변경하거나 새 문서를 작성해 주세요.'}
+            </p>
           </div>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -583,24 +792,93 @@ export default function ArchivePage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
                 <thead>
                   <tr style={{ backgroundColor: '#F8FAF9', borderBottom: '1.5px solid var(--input-border)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
-                    <th style={{ padding: '14px 16px' }}>작성일</th>
-                    <th style={{ padding: '14px 16px' }}>부서</th>
-                    <th style={{ padding: '14px 16px' }}>작성자</th>
-                    <th style={{ padding: '14px 16px' }}>교육명</th>
-                    <th style={{ padding: '14px 16px' }}>교육일시</th>
-                    <th style={{ padding: '14px 16px' }}>예정인원</th>
-                    <th style={{ padding: '14px 16px', textAlign: 'center' }}>문서 열람</th>
+                    {renderSortHeader('createdAt', '작성일')}
+                    {renderSortHeader('department', '부서')}
+                    {renderSortHeader('author', '작성자')}
+                    {renderSortHeader('trainingName', '교육명')}
+                    {renderSortHeader('datetime', '교육일시')}
+                    {renderSortHeader('expectedCount', '예정인원')}
+                    {renderSortHeader('hasReport', '보고서 상태', 'center')}
+                    <th style={{ padding: '14px 16px', textAlign: 'center' }}>계획서 열람</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((plan, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
+                  {paginatedItems.map((plan, idx) => (
+                    <tr key={plan.id || idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
                       <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>{plan.createdAt}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 600 }}>{plan.department}</td>
                       <td style={{ padding: '14px 16px' }}>{plan.author} ({plan.position})</td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary)' }}>{plan.trainingName}</td>
                       <td style={{ padding: '14px 16px' }}>{plan.datetime}</td>
                       <td style={{ padding: '14px 16px' }}>{plan.expectedCount}</td>
+                      <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                        {plan.hasReport ? (
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 3 }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              backgroundColor: '#DCFCE7',
+                              color: '#166534',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}>
+                              <CheckCircle2 size={13} /> 보고서 완료
+                            </span>
+                            {plan.reportDocUrl && (
+                              <a
+                                href={plan.reportDocUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                  fontSize: 11,
+                                  color: 'var(--text-sub)',
+                                  textDecoration: 'underline',
+                                }}
+                              >
+                                결과보고서 열람
+                              </a>
+                            )}
+                          </div>
+                        ) : (
+                          <div style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 4,
+                              padding: '3px 8px',
+                              borderRadius: 6,
+                              backgroundColor: '#FEF3C7',
+                              color: '#92400E',
+                              fontSize: 12,
+                              fontWeight: 700,
+                            }}>
+                              <AlertTriangle size={13} /> 미작성
+                            </span>
+                            <a
+                              href={`/report?planId=${plan.id}`}
+                              style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 3,
+                                fontSize: 11,
+                                fontWeight: 700,
+                                color: '#B45309',
+                                backgroundColor: '#FFFBEB',
+                                border: '1px solid #FDE68A',
+                                padding: '3px 8px',
+                                borderRadius: 5,
+                                textDecoration: 'none',
+                              }}
+                              title="이 계획서 내용으로 바로 결과보고서를 작성합니다"
+                            >
+                              <FileText size={11} /> 보고서 작성
+                            </a>
+                          </div>
+                        )}
+                      </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
                         {plan.docUrl && (
                           <a
@@ -619,7 +897,7 @@ export default function ArchivePage() {
                               borderRadius: 6,
                             }}
                           >
-                            <ExternalLink size={13} /> 문서 열람
+                            <ExternalLink size={13} /> 계획서 열람
                           </a>
                         )}
                       </td>
@@ -633,18 +911,18 @@ export default function ArchivePage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
                 <thead>
                   <tr style={{ backgroundColor: '#F8FAF9', borderBottom: '1.5px solid var(--input-border)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
-                    <th style={{ padding: '14px 16px' }}>작성일</th>
-                    <th style={{ padding: '14px 16px' }}>부서</th>
-                    <th style={{ padding: '14px 16px' }}>작성자</th>
-                    <th style={{ padding: '14px 16px' }}>교육명</th>
-                    <th style={{ padding: '14px 16px' }}>교육일시</th>
-                    <th style={{ padding: '14px 16px' }}>참가인원</th>
+                    {renderSortHeader('createdAt', '작성일')}
+                    {renderSortHeader('department', '부서')}
+                    {renderSortHeader('author', '작성자')}
+                    {renderSortHeader('trainingName', '교육명')}
+                    {renderSortHeader('datetime', '교육일시')}
+                    {renderSortHeader('actualCount', '참가인원')}
                     <th style={{ padding: '14px 16px', textAlign: 'center' }}>문서 열람</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((rpt, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
+                  {paginatedItems.map((rpt, idx) => (
+                    <tr key={rpt.id || idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
                       <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>{rpt.createdAt}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 600 }}>{rpt.department}</td>
                       <td style={{ padding: '14px 16px' }}>{rpt.author} ({rpt.position})</td>
@@ -707,17 +985,17 @@ export default function ArchivePage() {
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 14 }}>
                 <thead>
                   <tr style={{ backgroundColor: '#F8FAF9', borderBottom: '1.5px solid var(--input-border)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
-                    <th style={{ padding: '14px 16px' }}>작성일</th>
-                    <th style={{ padding: '14px 16px' }}>해당연도</th>
-                    <th style={{ padding: '14px 16px' }}>교육명</th>
-                    <th style={{ padding: '14px 16px' }}>미이수자 수</th>
-                    <th style={{ padding: '14px 16px' }}>작성자</th>
+                    {renderSortHeader('createdAt', '작성일')}
+                    {renderSortHeader('year', '해당연도')}
+                    {renderSortHeader('trainingName', '교육명')}
+                    {renderSortHeader('itemCount', '미이수자 수')}
+                    {renderSortHeader('author', '작성자')}
                     <th style={{ padding: '14px 16px', textAlign: 'center' }}>대장 문서 열람</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((ledger, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
+                  {paginatedItems.map((ledger, idx) => (
+                    <tr key={ledger.id || idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
                       <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>{ledger.createdAt}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 600 }}>{ledger.year}년</td>
                       <td style={{ padding: '14px 16px', fontWeight: 700, color: 'var(--primary)' }}>{ledger.trainingName || '미지정'}</td>
@@ -778,16 +1056,18 @@ export default function ArchivePage() {
                 <thead>
                   <tr style={{ backgroundColor: '#F8FAF9', borderBottom: '1.5px solid var(--input-border)', color: 'var(--text-sub)', fontSize: 12, fontWeight: 700 }}>
                     <th style={{ padding: '14px 16px' }}>연번</th>
-                    <th style={{ padding: '14px 16px' }}>부서</th>
-                    <th style={{ padding: '14px 16px' }}>직종</th>
-                    <th style={{ padding: '14px 16px' }}>성명</th>
+                    {renderSortHeader('department', '부서')}
+                    {renderSortHeader('job', '직종')}
+                    {renderSortHeader('name', '성명')}
                     <th style={{ padding: '14px 16px', textAlign: 'center' }}>자필 서명</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {items.map((sig, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
-                      <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>{idx + 1}</td>
+                  {paginatedItems.map((sig, idx) => (
+                    <tr key={sig.id || idx} style={{ borderBottom: '1px solid var(--input-border)' }}>
+                      <td style={{ padding: '14px 16px', color: 'var(--text-sub)' }}>
+                        {(currentPage - 1) * pageSize + idx + 1}
+                      </td>
                       <td style={{ padding: '14px 16px', fontWeight: 600 }}>{sig.department}</td>
                       <td style={{ padding: '14px 16px' }}>{sig.job || '-'}</td>
                       <td style={{ padding: '14px 16px', fontWeight: 700 }}>{sig.name}</td>
@@ -817,6 +1097,150 @@ export default function ArchivePage() {
                   ))}
                 </tbody>
               </table>
+            )}
+          </div>
+        )}
+
+        {/* 페이지네이션 및 표시 건수 선택 바 */}
+        {!loading && sortedItems.length > 0 && (
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '12px 18px',
+            backgroundColor: '#F8FAF9',
+            borderTop: '1px solid var(--input-border)',
+            flexWrap: 'wrap',
+            gap: 12,
+            fontSize: 13,
+            color: 'var(--text-sub)',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span>
+                총 <strong>{sortedItems.length}</strong>건 중{' '}
+                <strong>{(currentPage - 1) * pageSize + 1}</strong> -{' '}
+                <strong>{Math.min(currentPage * pageSize, sortedItems.length)}</strong>건 표시
+              </span>
+              <select
+                value={pageSize}
+                onChange={(e) => {
+                  setPageSize(Number(e.target.value));
+                  setCurrentPage(1);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  fontSize: 12,
+                  borderRadius: 6,
+                  borderColor: 'var(--input-border)',
+                  backgroundColor: '#fff',
+                  cursor: 'pointer',
+                }}
+              >
+                <option value={10}>10개씩 보기</option>
+                <option value={15}>15개씩 보기</option>
+                <option value={20}>20개씩 보기</option>
+                <option value={50}>50개씩 보기</option>
+              </select>
+            </div>
+
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(1)}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === 1 ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="처음 페이지"
+                >
+                  <ChevronsLeft size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === 1 ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="이전 페이지"
+                >
+                  <ChevronLeft size={14} />
+                </button>
+
+                {getPageNumbers().map((num) => (
+                  <button
+                    key={num}
+                    type="button"
+                    onClick={() => setCurrentPage(num)}
+                    style={{
+                      minWidth: 30,
+                      height: 30,
+                      padding: '0 6px',
+                      borderRadius: 6,
+                      border: num === currentPage ? 'none' : '1px solid var(--input-border)',
+                      backgroundColor: num === currentPage ? 'var(--primary)' : '#fff',
+                      color: num === currentPage ? '#fff' : 'var(--text-main)',
+                      fontWeight: num === currentPage ? 700 : 500,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                    }}
+                  >
+                    {num}
+                  </button>
+                ))}
+
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === totalPages ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="다음 페이지"
+                >
+                  <ChevronRight size={14} />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage(totalPages)}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: 6,
+                    border: '1px solid var(--input-border)',
+                    backgroundColor: '#fff',
+                    cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    opacity: currentPage === totalPages ? 0.35 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                  }}
+                  title="마지막 페이지"
+                >
+                  <ChevronsRight size={14} />
+                </button>
+              </div>
             )}
           </div>
         )}

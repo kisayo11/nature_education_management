@@ -10,7 +10,30 @@ export async function GET(request) {
     const query = (searchParams.get('q') || '').toLowerCase().trim();
 
     if (type === 'plans') {
-      let plans = await getPlans();
+      const [rawPlans, rawReports] = await Promise.all([getPlans(), getReports()]);
+
+      const norm = (s) => (s || '').replace(/\s+/g, '').toLowerCase();
+
+      let plans = rawPlans.map((p) => {
+        const pName = norm(p.trainingName);
+        const pDate = (p.datetime || '').slice(0, 10);
+
+        const matchedReport = rawReports.find((r) => {
+          const rName = norm(r.trainingName);
+          if (rName !== pName) return false;
+          const rDate = (r.datetime || '').slice(0, 10);
+          if (pDate && rDate) return pDate === rDate;
+          return true;
+        });
+
+        return {
+          ...p,
+          hasReport: !!matchedReport,
+          reportId: matchedReport?.id || null,
+          reportDocUrl: matchedReport?.docUrl || null,
+        };
+      });
+
       if (query) {
         plans = plans.filter(
           (p) =>

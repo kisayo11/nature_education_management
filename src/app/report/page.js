@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FileText, CheckCircle2, AlertCircle, ExternalLink, Download, RefreshCw, Upload, Image as ImageIcon, FilePenLine, X, Search, ChevronRight } from 'lucide-react';
 
 export default function ReportPage() {
@@ -37,6 +37,30 @@ export default function ReportPage() {
 
   // 통합 PDF 병합 로딩 상태
   const [mergingPdf, setMergingPdf] = useState(false);
+
+  // URL 파라미터(?planId=...)가 있을 경우 해당 계획서 내용 자동 로드
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const planId = params.get('planId');
+    if (!planId) return;
+
+    const fetchAndApplyPlan = async () => {
+      try {
+        const res = await fetch('/api/archive?type=plans');
+        const data = await res.json();
+        if (data.success && data.items) {
+          const matched = data.items.find((p) => p.id === planId);
+          if (matched) {
+            handleSelectPlan(matched);
+          }
+        }
+      } catch (err) {
+        console.error('URL 계획서 파라미터 로드 실패:', err);
+      }
+    };
+    fetchAndApplyPlan();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
